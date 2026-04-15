@@ -30,8 +30,21 @@ export default function ContactPage() {
       });
 
       if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? "Submission failed");
+        const raw = await response.text();
+        let message = "Submission failed";
+        try {
+          const parsed = JSON.parse(raw) as { error?: string };
+          if (parsed.error) {
+            message = parsed.error;
+          } else if (raw) {
+            message = raw;
+          }
+        } catch {
+          if (raw) {
+            message = raw;
+          }
+        }
+        throw new Error(message);
       }
       router.push("/thank-you");
     } catch (error) {
