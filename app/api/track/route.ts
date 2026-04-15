@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       const quizTable = process.env.SUPABASE_QUIZ_TABLE || "quiz_responses";
       const baseQuizPayload = {
         session_id: sessionId,
+        event_type: eventType,
         q1: answers[1] ?? null,
         q2: answers[2] ?? null,
         q3: answers[3] ?? null,
