@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#FFF5EC"/>
+  <rect x="40" y="40" width="1120" height="720" rx="16" fill="#ffffff" stroke="#E87722" stroke-width="4"/>
+  <text x="600" y="380" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="40" fill="#333333">
+    HCDR Quiz Image
+  </text>
+  <text x="600" y="430" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#555555">
+    Add files to /public/images for final artwork
+  </text>
+</svg>
