@@ -54,8 +54,7 @@ export async function POST(request: NextRequest) {
         await insertSupabaseRow(quizTable, baseQuizPayload);
       } catch (quizError) {
         // Fallback for schemas without session_id but with answers columns.
-        const fallbackPayload = { ...baseQuizPayload };
-        delete fallbackPayload.session_id;
+        const { session_id: _sessionId, ...fallbackPayload } = baseQuizPayload;
         try {
           await insertSupabaseRow(quizTable, fallbackPayload);
         } catch (quizFallbackError) {
