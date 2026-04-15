@@ -90,6 +90,37 @@ export async function POST(request: NextRequest) {
         delete v.current_provider;
         delete v.guide_consent;
         return v;
+      })(),
+      (() => {
+        const v = { ...leadPayload };
+        delete v.session_id;
+        delete v.result_profile;
+        delete v.guide_consent;
+        delete v.q1;
+        delete v.q2;
+        delete v.q3;
+        delete v.q4;
+        delete v.q5;
+        delete v.q6;
+        delete v.q7;
+        delete v.q8;
+        return v;
+      })(),
+      (() => {
+        const v = { ...leadPayload };
+        delete v.session_id;
+        delete v.result_profile;
+        delete v.guide_consent;
+        delete v.q1;
+        delete v.q2;
+        delete v.q3;
+        delete v.q4;
+        delete v.q5;
+        delete v.q6;
+        delete v.q7;
+        delete v.q8;
+        delete v.current_provider;
+        return v;
       })()
     ];
 

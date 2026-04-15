@@ -62,7 +62,14 @@ export async function POST(request: NextRequest) {
       delete variant2.event_type;
       const variant3 = { ...variant2 };
       delete variant3.session_id;
-      const variants = [variant1, variant2, variant3];
+      const variant4 = {
+        session_id: sessionId,
+        event_type: eventType
+      };
+      const variant5 = {
+        event_type: eventType
+      };
+      const variants = [variant1, variant2, variant3, variant4, variant5];
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {
