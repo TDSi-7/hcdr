@@ -53,7 +53,17 @@ export async function POST(request: NextRequest) {
       try {
         await insertSupabaseRow(quizTable, baseQuizPayload);
       } catch (quizError) {
-        console.warn("Quiz completion insert failed (non-blocking):", quizError);
+        // Fallback for schemas without session_id but with answers columns.
+        const fallbackPayload = { ...baseQuizPayload };
+        delete fallbackPayload.session_id;
+        try {
+          await insertSupabaseRow(quizTable, fallbackPayload);
+        } catch (quizFallbackError) {
+          console.warn("Quiz completion insert failed (non-blocking):", {
+            firstAttempt: quizError,
+            fallbackAttempt: quizFallbackError
+          });
+        }
       }
     }
 

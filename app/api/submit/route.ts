@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const sessionId = clean(body.sessionId);
     const leadsTable = process.env.SUPABASE_LEADS_TABLE || "catheter_leads";
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
-    await insertSupabaseRow(leadsTable, {
+    const leadPayload: Record<string, unknown> = {
       session_id: sessionId || null,
       first_name: firstName,
       last_name: lastName,
@@ -71,7 +71,25 @@ export async function POST(request: NextRequest) {
       result_profile: profile || null,
       guide_consent: Boolean(body.guideConsent),
       referral_consent: Boolean(body.referralConsent)
-    });
+    };
+
+    try {
+      await insertSupabaseRow(leadsTable, leadPayload);
+    } catch (leadInsertError) {
+      // Fallback for leaner schemas: drop optional metadata fields first.
+      const fallbackPayload = { ...leadPayload };
+      delete fallbackPayload.session_id;
+      delete fallbackPayload.result_profile;
+      delete fallbackPayload.current_provider;
+      delete fallbackPayload.guide_consent;
+      try {
+        await insertSupabaseRow(leadsTable, fallbackPayload);
+      } catch (fallbackLeadError) {
+        throw new Error(
+          `Lead insert failed for table ${leadsTable}. First attempt: ${String(leadInsertError)}. Fallback attempt: ${String(fallbackLeadError)}`
+        );
+      }
+    }
 
     if (sessionId) {
       try {
@@ -88,6 +106,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error submitting form:", error);
-    return NextResponse.json({ error: "Failed to submit. Please try again later." }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to submit. Please try again later." },
+      { status: 500 }
+    );
   }
 }
