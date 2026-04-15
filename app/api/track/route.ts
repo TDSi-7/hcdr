@@ -38,8 +38,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
-      const quizTable = process.env.SUPABASE_QUIZ_TABLE || "quiz_responses";
-      const baseQuizPayload = {
+      const quizTables = Array.from(
+        new Set([
+          process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
+          "catheter_quiz_completion",
+          "quiz_responses"
+        ])
+      );
+      const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
         q1: answers[1] ?? null,
@@ -51,19 +57,28 @@ export async function POST(request: NextRequest) {
         q7: answers[7] ?? null,
         q8: answers[8] ?? null
       };
-      try {
-        await insertSupabaseRow(quizTable, baseQuizPayload);
-      } catch (quizError) {
-        // Fallback for schemas without session_id but with answers columns.
-        const { session_id: _sessionId, ...fallbackPayload } = baseQuizPayload;
-        try {
-          await insertSupabaseRow(quizTable, fallbackPayload);
-        } catch (quizFallbackError) {
-          console.warn("Quiz completion insert failed (non-blocking):", {
-            firstAttempt: quizError,
-            fallbackAttempt: quizFallbackError
-          });
+      const variant1 = baseQuizPayload;
+      const variant2 = { ...baseQuizPayload };
+      delete variant2.event_type;
+      const variant3 = { ...variant2 };
+      delete variant3.session_id;
+      const variants = [variant1, variant2, variant3];
+      let saved = false;
+      const errors: string[] = [];
+      for (const table of quizTables) {
+        for (const payload of variants) {
+          try {
+            await insertSupabaseRow(table, payload);
+            saved = true;
+            break;
+          } catch (err) {
+            errors.push(`${table}: ${String(err)}`);
+          }
         }
+        if (saved) break;
+      }
+      if (!saved) {
+        console.warn("Quiz completion insert failed (non-blocking):", errors.join(" | "));
       }
     }
 

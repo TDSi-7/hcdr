@@ -51,7 +51,9 @@ export async function POST(request: NextRequest) {
     const answers = body.answers ?? {};
     const profile = body.profile ?? "";
     const sessionId = clean(body.sessionId);
-    const leadsTable = process.env.SUPABASE_LEADS_TABLE || "catheter_leads";
+    const leadsTables = Array.from(
+      new Set([process.env.SUPABASE_LEADS_TABLE || "catheter_leads", "catheter_leads"])
+    );
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
     const leadPayload: Record<string, unknown> = {
       session_id: sessionId || null,
@@ -73,22 +75,41 @@ export async function POST(request: NextRequest) {
       referral_consent: Boolean(body.referralConsent)
     };
 
-    try {
-      await insertSupabaseRow(leadsTable, leadPayload);
-    } catch (leadInsertError) {
-      // Fallback for leaner schemas: drop optional metadata fields first.
-      const fallbackPayload = { ...leadPayload };
-      delete fallbackPayload.session_id;
-      delete fallbackPayload.result_profile;
-      delete fallbackPayload.current_provider;
-      delete fallbackPayload.guide_consent;
-      try {
-        await insertSupabaseRow(leadsTable, fallbackPayload);
-      } catch (fallbackLeadError) {
-        throw new Error(
-          `Lead insert failed for table ${leadsTable}. First attempt: ${String(leadInsertError)}. Fallback attempt: ${String(fallbackLeadError)}`
-        );
+    const payloadVariants: Array<Record<string, unknown>> = [
+      leadPayload,
+      (() => {
+        const v = { ...leadPayload };
+        delete v.session_id;
+        delete v.result_profile;
+        return v;
+      })(),
+      (() => {
+        const v = { ...leadPayload };
+        delete v.session_id;
+        delete v.result_profile;
+        delete v.current_provider;
+        delete v.guide_consent;
+        return v;
+      })()
+    ];
+
+    let inserted = false;
+    const failures: string[] = [];
+    for (const table of leadsTables) {
+      for (const payload of payloadVariants) {
+        try {
+          await insertSupabaseRow(table, payload);
+          inserted = true;
+          break;
+        } catch (err) {
+          failures.push(`${table}: ${String(err)}`);
+        }
       }
+      if (inserted) break;
+    }
+
+    if (!inserted) {
+      throw new Error(`Lead insert failed across all attempts. ${failures.join(" | ")}`);
     }
 
     if (sessionId) {
