@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -19,8 +20,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          id="Cookiebot"
+          src="https://consent.cookiebot.com/uc.js"
+          data-cbid="13fb076c-8dcf-491d-b24a-4fd10daaab4f"
+          type="text/javascript"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className={`${poppins.className} min-h-screen bg-white text-hcdr-body`}>
         {children}
+        <Script
+          id="CookieDeclaration"
+          src="https://consent.cookiebot.com/13fb076c-8dcf-491d-b24a-4fd10daaab4f/cd.js"
+          type="text/javascript"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
