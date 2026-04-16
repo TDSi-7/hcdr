@@ -21,8 +21,8 @@ export function QuizQuestion({ question, answer, onSelect }: QuizQuestionProps) 
         />
       </div>
       <div>
-        <h2 className="text-2xl font-semibold text-hcdr-dark">{question.question}</h2>
-        {question.subtitle ? <p className="mt-2 text-base text-hcdr-body">{question.subtitle}</p> : null}
+        <h2 className="text-center text-[20px] font-semibold text-hcdr-dark md:text-[24px]">{question.question}</h2>
+        {question.subtitle ? <p className="mt-2 text-center text-base text-hcdr-body">{question.subtitle}</p> : null}
         <fieldset className="mt-6 space-y-3">
           <legend className="sr-only">{question.question}</legend>
           {question.options.map((option) => (

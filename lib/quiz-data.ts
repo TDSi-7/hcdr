@@ -46,7 +46,7 @@ export const quizQuestions: QuizQuestion[] = [
     stage: 2,
     stageTitle: "Your Biggest Frustrations",
     question: "What frustrates you most about your current catheter routine?",
-    subtitle: "Pick the one that resonates most",
+    subtitle: "Choose the one that best describes your experience",
     options: [
       { id: "3a", label: "Discomfort or pain during use", value: "discomfort" },
       { id: "3b", label: "Worrying about infections or UTIs", value: "uti_worry" },
