@@ -43,7 +43,6 @@ const profileCopy = {
 
 export default function ResultsPage() {
   const [answers, setAnswers] = useState<Record<number, string> | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const router = useRouter();
   const hasTrackedView = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
@@ -94,12 +93,8 @@ export default function ResultsPage() {
   const supplyNudge = getSupplyNudge(answers[7]);
   const sessionId = sessionIdRef.current ?? "unknown";
 
-  const toggleCard = (key: string) => {
-    setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   return (
-    <main className="bg-hcdr-warm">
+    <main className="overflow-x-hidden bg-hcdr-warm">
       <Header />
       <section className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6">
         <div className="grid items-start gap-6 md:grid-cols-[220px_1fr] md:gap-8">
@@ -119,53 +114,31 @@ export default function ResultsPage() {
               <p className="mb-4 mt-2 text-[14px] leading-relaxed text-hcdr-body">{copy.body}</p>
             </article>
 
-            <div className="flex flex-wrap gap-3">
-              <article className="min-w-[140px] flex-1 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
+            <div className="grid gap-3 md:grid-cols-3">
+              <article className="min-w-0 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
                 <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[#999999]">Top Priority</p>
-                <p className="mt-1 text-[13px] font-medium text-hcdr-dark">{topPriority}</p>
+                <p className="mt-1 break-words text-[13px] font-medium text-hcdr-dark">{topPriority}</p>
               </article>
-              <article className="min-w-[140px] flex-1 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
+              <article className="min-w-0 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
                 <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[#999999]">Frustration</p>
-                <p className="mt-1 text-[13px] font-medium text-hcdr-dark">{topFrustration}</p>
+                <p className="mt-1 break-words text-[13px] font-medium text-hcdr-dark">{topFrustration}</p>
               </article>
-              <article className="min-w-[140px] flex-1 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
+              <article className="min-w-0 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
                 <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[#999999]">Supply Method</p>
-                <p className="mt-1 text-[13px] font-medium text-hcdr-dark">{supplyMethod}</p>
+                <p className="mt-1 break-words text-[13px] font-medium text-hcdr-dark">{supplyMethod}</p>
               </article>
             </div>
 
             <div className="mt-4 space-y-[10px]">
-          {insightCards.map((card) => {
-            const isExpanded = Boolean(expandedCards[card.title]);
-            return (
-              <article
-                key={card.title}
-                className="border-l-[3px] border-hcdr-orange px-4 py-3"
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleCard(card.title)}
-                  className="flex w-full items-start justify-between gap-4 text-left"
-                >
-                  <div>
-                    <h2 className="text-[15px] font-medium text-hcdr-dark">{card.title}</h2>
-                    {!isExpanded ? (
-                      <p className="mt-1 truncate text-[13px] text-[#999999]">{getCardPreview(card.body)}</p>
-                    ) : null}
-                  </div>
-                  <span className={`text-[14px] text-hcdr-orange transition-transform ${isExpanded ? "rotate-180" : ""}`}>
-                    ▾
-                  </span>
-                </button>
-                {isExpanded ? (
+              {insightCards.map((card) => (
+                <article key={card.title} className="border-l-[3px] border-hcdr-orange px-4 py-3">
+                  <h2 className="text-[15px] font-medium text-hcdr-dark">{card.title}</h2>
                   <div
-                    className="mt-3 space-y-3 text-[13px] leading-[1.7] text-hcdr-body"
+                    className="mt-2 space-y-3 break-words text-[13px] leading-[1.7] text-hcdr-body"
                     dangerouslySetInnerHTML={{ __html: card.body.replace(/\n\n/g, "</p><p>").replace(/^/, "<p>").concat("</p>") }}
                   />
-                ) : null}
-              </article>
-            );
-          })}
+                </article>
+              ))}
             </div>
 
             {supplyNudge ? (
@@ -245,9 +218,6 @@ export default function ResultsPage() {
         </div>
       </section>
       <Footer />
-      <style jsx global>{`
-        /* reserved for results page animations */
-      `}</style>
     </main>
   );
 }
