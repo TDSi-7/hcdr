@@ -102,38 +102,45 @@ export default function ResultsPage() {
     <main className="bg-hcdr-warm">
       <Header />
       <section className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6">
-        <SmartImage
-          src="/images/quiz-results.png"
-          alt="Assessment results"
-          width={760}
-          height={360}
-          className="mx-auto h-auto w-full max-w-2xl rounded-lg bg-white p-3 object-contain"
-        />
+        <div className="grid items-start gap-6 md:grid-cols-[220px_1fr] md:gap-8">
+          <div className="mx-auto mb-4 flex h-[140px] w-[140px] items-center justify-center rounded-full bg-[#FFF3E8] md:mb-0 md:h-[180px] md:w-[180px]">
+            <SmartImage
+              src="/images/quiz-results.png"
+              alt="Assessment results"
+              width={180}
+              height={180}
+              className="h-[120px] w-[120px] object-contain md:h-[150px] md:w-[150px]"
+            />
+          </div>
 
-        <article className="mt-6 rounded-lg border border-hcdr-light-grey bg-white p-5 shadow-sm">
-          <h1 className="text-2xl font-semibold text-hcdr-dark">{copy.title}</h1>
-          <p className="mt-3 leading-relaxed text-hcdr-body">{copy.body}</p>
-        </article>
+          <div>
+            <article>
+              <h1 className="text-[20px] font-semibold text-hcdr-dark">{copy.title}</h1>
+              <p className="mb-4 mt-2 text-[14px] leading-relaxed text-hcdr-body">{copy.body}</p>
+            </article>
 
-        <div className="mt-4 rounded-lg border border-[#F3E2D7] bg-[#FFFAF5] px-4 py-3 text-[14px] text-hcdr-body md:flex md:items-center md:gap-4">
-          <p>
-            <strong className="text-hcdr-dark">Your top priority:</strong> {topPriority}
-          </p>
-          <p>
-            <strong className="text-hcdr-dark">Your biggest frustration:</strong> {topFrustration}
-          </p>
-          <p>
-            <strong className="text-hcdr-dark">Current supply method:</strong> {supplyMethod}
-          </p>
-        </div>
+            <div className="flex flex-wrap gap-3">
+              <article className="min-w-[140px] flex-1 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[#999999]">Top Priority</p>
+                <p className="mt-1 text-[13px] font-medium text-hcdr-dark">{topPriority}</p>
+              </article>
+              <article className="min-w-[140px] flex-1 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[#999999]">Frustration</p>
+                <p className="mt-1 text-[13px] font-medium text-hcdr-dark">{topFrustration}</p>
+              </article>
+              <article className="min-w-[140px] flex-1 rounded-md border border-[#E5E5E5] bg-[#FFFAF5] px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[#999999]">Supply Method</p>
+                <p className="mt-1 text-[13px] font-medium text-hcdr-dark">{supplyMethod}</p>
+              </article>
+            </div>
 
-        <div className="mt-6 space-y-3">
+            <div className="mt-4 space-y-[10px]">
           {insightCards.map((card) => {
             const isExpanded = Boolean(expandedCards[card.title]);
             return (
               <article
                 key={card.title}
-                className="rounded-lg border-l-4 border-hcdr-orange bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)] animate-[fadeIn_260ms_ease-out]"
+                className="border-l-[3px] border-hcdr-orange px-4 py-3"
               >
                 <button
                   type="button"
@@ -141,113 +148,105 @@ export default function ResultsPage() {
                   className="flex w-full items-start justify-between gap-4 text-left"
                 >
                   <div>
-                    <h2 className="text-lg font-semibold text-hcdr-dark">{card.title}</h2>
+                    <h2 className="text-[15px] font-medium text-hcdr-dark">{card.title}</h2>
                     {!isExpanded ? (
-                      <p className="mt-1 truncate text-sm text-[#777777]">{getCardPreview(card.body)}</p>
+                      <p className="mt-1 truncate text-[13px] text-[#999999]">{getCardPreview(card.body)}</p>
                     ) : null}
                   </div>
-                  <span className={`text-sm text-hcdr-orange transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                  <span className={`text-[14px] text-hcdr-orange transition-transform ${isExpanded ? "rotate-180" : ""}`}>
                     ▾
                   </span>
                 </button>
                 {isExpanded ? (
                   <div
-                    className="mt-3 space-y-3 text-[15px] leading-[1.7] text-hcdr-body"
+                    className="mt-3 space-y-3 text-[13px] leading-[1.7] text-hcdr-body"
                     dangerouslySetInnerHTML={{ __html: card.body.replace(/\n\n/g, "</p><p>").replace(/^/, "<p>").concat("</p>") }}
                   />
                 ) : null}
               </article>
             );
           })}
-        </div>
+            </div>
 
-        {supplyNudge ? (
-          <div className="mt-5 rounded-lg border border-hcdr-orange bg-hcdr-orange-light p-4 text-sm text-hcdr-dark">{supplyNudge}</div>
-        ) : null}
+            {supplyNudge ? (
+              <div className="mt-4 flex items-start gap-2 rounded-md bg-hcdr-orange-light px-3 py-[10px] text-[13px] leading-[1.5] text-hcdr-body">
+                <span className="mt-[1px] text-base leading-none">💡</span>
+                <p>{supplyNudge.replace(/^💡\s*/, "")}</p>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </section>
 
-      <section className="mt-10 bg-hcdr-orange-light px-4 py-8 md:py-10">
-        <div className="mx-auto flex w-full max-w-[600px] flex-col items-center text-center">
-          <SmartImage
-            src="/images/quiz-connect.png"
-            alt="Connect with specialist support"
-            width={120}
-            height={120}
-            className="h-auto w-[120px] object-contain"
-          />
-          <p className="mt-4 text-[15px] text-hcdr-body">
-            A specialist provider can discuss your options with you. It&apos;s free, confidential, and there&apos;s no
-            obligation.
-          </p>
-          <Link
-            href={copy.primaryHref}
-            target={copy.primaryHref.startsWith("http") ? "_blank" : undefined}
-            className="mt-5 w-full rounded-lg bg-hcdr-orange px-8 py-4 text-center text-lg font-semibold text-white shadow-[0_4px_12px_rgba(232,119,34,0.3)] transition hover:bg-hcdr-orange-hover md:w-auto md:min-w-[420px] animate-[ctaPulse_900ms_ease-out_1]"
-            onClick={() =>
-              void trackQuizEvent({
-                sessionId,
-                eventType: copy.primaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
-                profile
-              })
-            }
-          >
-            {copy.primaryLabel}
-          </Link>
-
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[13px] text-[#999999]">
+      <section className="mx-auto mt-2 w-full max-w-5xl px-4 pb-8 md:px-6">
+        <div className="rounded-xl bg-hcdr-orange-light px-5 py-7 text-center md:px-8">
+          <div className="mx-auto flex w-full max-w-[600px] flex-col items-center text-center">
+            <SmartImage
+              src="/images/quiz-connect.png"
+              alt="Connect with specialist support"
+              width={80}
+              height={80}
+              className="mb-3 h-auto w-[80px] object-contain"
+            />
+            <p className="mb-4 text-[14px] text-hcdr-body">
+              A specialist provider can discuss your options with you. It&apos;s free, confidential, and there&apos;s no
+              obligation.
+            </p>
             <Link
-              href={copy.secondaryHref}
-              target={copy.secondaryHref.startsWith("http") ? "_blank" : undefined}
-              className="hover:underline"
+              href={copy.primaryHref}
+              target={copy.primaryHref.startsWith("http") ? "_blank" : undefined}
+              className="w-full rounded-lg bg-hcdr-orange px-8 py-[14px] text-center text-[16px] font-medium text-white shadow-[0_4px_12px_rgba(232,119,34,0.3)] transition hover:bg-hcdr-orange-hover md:w-auto"
               onClick={() =>
                 void trackQuizEvent({
                   sessionId,
-                  eventType: copy.secondaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
+                  eventType: copy.primaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
                   profile
                 })
               }
             >
-              {copy.secondaryLabel}
+              {copy.primaryLabel === "Yes — Connect Me With a Specialist"
+                ? "Yes — Connect me with a specialist"
+                : copy.primaryLabel}
             </Link>
-            <span aria-hidden>·</span>
-            <button
-              type="button"
-              onClick={() => {
-                void trackQuizEvent({
-                  sessionId,
-                  eventType: "start_over_clicked",
-                  profile
-                });
-                clearQuizState();
-                router.push("/");
-              }}
-              className="hover:underline"
-            >
-              Start over
-            </button>
+
+            <div className="mt-[14px] flex flex-wrap items-center justify-center gap-2 text-[12px] text-[#999999] opacity-70">
+              <Link
+                href={copy.secondaryHref}
+                target={copy.secondaryHref.startsWith("http") ? "_blank" : undefined}
+                className="hover:underline"
+                onClick={() =>
+                  void trackQuizEvent({
+                    sessionId,
+                    eventType: copy.secondaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
+                    profile
+                  })
+                }
+              >
+                {copy.secondaryLabel}
+              </Link>
+              <span aria-hidden>·</span>
+              <button
+                type="button"
+                onClick={() => {
+                  void trackQuizEvent({
+                    sessionId,
+                    eventType: "start_over_clicked",
+                    profile
+                  });
+                  clearQuizState();
+                  router.push("/");
+                }}
+                className="hover:underline"
+              >
+                Start over
+              </button>
+            </div>
           </div>
         </div>
       </section>
       <Footer />
       <style jsx global>{`
-        @keyframes ctaPulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(232, 119, 34, 0.45);
-          }
-          100% {
-            box-shadow: 0 0 0 14px rgba(232, 119, 34, 0);
-          }
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(6px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+        /* reserved for results page animations */
       `}</style>
     </main>
   );
