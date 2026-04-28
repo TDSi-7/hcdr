@@ -7,7 +7,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
-import { getCardPreview, getResultCards, getSupplyNudge } from "@/lib/result-content";
+import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
 import { clearQuizState, getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
 import { trackQuizEvent } from "@/lib/tracking";
@@ -129,7 +129,72 @@ export default function ResultsPage() {
               </article>
             </div>
 
-            <div className="mt-4 space-y-[10px]">
+            <div className="mt-4 rounded-xl bg-hcdr-orange-light px-5 py-7 text-center md:px-8">
+              <div className="mx-auto flex w-full max-w-[600px] flex-col items-center text-center">
+                <SmartImage
+                  src="/images/quiz-connect.png"
+                  alt="Connect with specialist support"
+                  width={80}
+                  height={80}
+                  className="mb-3 h-auto w-[80px] object-contain"
+                />
+                <p className="mb-4 text-[14px] text-hcdr-body">
+                  A specialist provider can discuss your options with you. It&apos;s free, confidential, and there&apos;s no
+                  obligation.
+                </p>
+                <Link
+                  href={copy.primaryHref}
+                  target={copy.primaryHref.startsWith("http") ? "_blank" : undefined}
+                  className="w-full rounded-lg bg-hcdr-orange px-8 py-[14px] text-center text-[16px] font-medium text-white shadow-[0_4px_12px_rgba(232,119,34,0.3)] transition hover:bg-hcdr-orange-hover md:w-auto"
+                  onClick={() =>
+                    void trackQuizEvent({
+                      sessionId,
+                      eventType: copy.primaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
+                      profile
+                    })
+                  }
+                >
+                  {copy.primaryLabel === "Yes — Connect Me With a Specialist"
+                    ? "Yes — Connect me with a specialist"
+                    : copy.primaryLabel}
+                </Link>
+
+                <div className="mt-[14px] flex flex-wrap items-center justify-center gap-2 text-[12px] text-[#999999] opacity-70">
+                  <Link
+                    href={copy.secondaryHref}
+                    target={copy.secondaryHref.startsWith("http") ? "_blank" : undefined}
+                    className="hover:underline"
+                    onClick={() =>
+                      void trackQuizEvent({
+                        sessionId,
+                        eventType: copy.secondaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
+                        profile
+                      })
+                    }
+                  >
+                    {copy.secondaryLabel}
+                  </Link>
+                  <span aria-hidden>·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void trackQuizEvent({
+                        sessionId,
+                        eventType: "start_over_clicked",
+                        profile
+                      });
+                      clearQuizState();
+                      router.push("/");
+                    }}
+                    className="hover:underline"
+                  >
+                    Start over
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-[10px]">
               {insightCards.map((card) => (
                 <article key={card.title} className="border-l-[3px] border-hcdr-orange px-4 py-3">
                   <h2 className="text-[15px] font-medium text-hcdr-dark">{card.title}</h2>
@@ -147,73 +212,6 @@ export default function ResultsPage() {
                 <p>{supplyNudge.replace(/^💡\s*/, "")}</p>
               </div>
             ) : null}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto mt-2 w-full max-w-5xl px-4 pb-8 md:px-6">
-        <div className="rounded-xl bg-hcdr-orange-light px-5 py-7 text-center md:px-8">
-          <div className="mx-auto flex w-full max-w-[600px] flex-col items-center text-center">
-            <SmartImage
-              src="/images/quiz-connect.png"
-              alt="Connect with specialist support"
-              width={80}
-              height={80}
-              className="mb-3 h-auto w-[80px] object-contain"
-            />
-            <p className="mb-4 text-[14px] text-hcdr-body">
-              A specialist provider can discuss your options with you. It&apos;s free, confidential, and there&apos;s no
-              obligation.
-            </p>
-            <Link
-              href={copy.primaryHref}
-              target={copy.primaryHref.startsWith("http") ? "_blank" : undefined}
-              className="w-full rounded-lg bg-hcdr-orange px-8 py-[14px] text-center text-[16px] font-medium text-white shadow-[0_4px_12px_rgba(232,119,34,0.3)] transition hover:bg-hcdr-orange-hover md:w-auto"
-              onClick={() =>
-                void trackQuizEvent({
-                  sessionId,
-                  eventType: copy.primaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
-                  profile
-                })
-              }
-            >
-              {copy.primaryLabel === "Yes — Connect Me With a Specialist"
-                ? "Yes — Connect me with a specialist"
-                : copy.primaryLabel}
-            </Link>
-
-            <div className="mt-[14px] flex flex-wrap items-center justify-center gap-2 text-[12px] text-[#999999] opacity-70">
-              <Link
-                href={copy.secondaryHref}
-                target={copy.secondaryHref.startsWith("http") ? "_blank" : undefined}
-                className="hover:underline"
-                onClick={() =>
-                  void trackQuizEvent({
-                    sessionId,
-                    eventType: copy.secondaryHref === "/contact" ? "connect_clicked" : "guide_clicked",
-                    profile
-                  })
-                }
-              >
-                {copy.secondaryLabel}
-              </Link>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                onClick={() => {
-                  void trackQuizEvent({
-                    sessionId,
-                    eventType: "start_over_clicked",
-                    profile
-                  });
-                  clearQuizState();
-                  router.push("/");
-                }}
-                className="hover:underline"
-              >
-                Start over
-              </button>
-            </div>
           </div>
         </div>
       </section>
