@@ -30,7 +30,7 @@ There are three main types of catheter surface: <strong>uncoated</strong> (which
 
 Catheter <strong>length and size (French gauge)</strong> also matter. A catheter that's too large can cause unnecessary pressure, while one that's too small may not drain effectively. Women can often use shorter, more compact catheters that are easier to handle.
 
-A specialist catheter provider can discuss your current product with you and help you explore alternatives that may feel more comfortable, all available through the NHS.`
+A specialist provider can review your current catheter and discuss alternatives that may be more comfortable — without changing your prescription process. This is a free, no-obligation conversation.`
   },
   uti_worry: {
     topic: "hygiene",
@@ -43,7 +43,7 @@ A specialist catheter provider can discuss your current product with you and hel
 
 <strong>Closed-system catheters</strong> (also called no-touch or enclosed catheters) keep the catheter inside a protective sleeve, so you never directly handle the tube that enters your body. This can be particularly useful when catheterising in less hygienic environments like public toilets or at work.
 
-Beyond the catheter itself, ensuring you're catheterising <strong>frequently enough</strong> to avoid overfilling the bladder, and drinking adequate fluids throughout the day, are two of the most effective ways to reduce infection risk. A specialist provider can review your full routine and advise on what might help.`
+Beyond the catheter itself, ensuring you're catheterising <strong>frequently enough</strong> to avoid overfilling the bladder, and drinking adequate fluids throughout the day, are two of the most effective ways to reduce infection risk. A specialist provider can review your full routine and discuss whether any product or technique changes might help with hygiene or infection management. This is a free, no-obligation conversation.`
   },
   reorder_hassle: {
     topic: "reorder",
@@ -94,7 +94,7 @@ const q6Cards: Record<string, InsightCardContent> = {
   comfort: {
     topic: "comfort",
     title: "A note on comfort",
-    body: "You mentioned comfort is your top priority. Catheter coatings, tip design, and size all affect how a catheter feels. Hydrophilic and pre-lubricated options are designed to minimise friction. A specialist provider can help you find a better fit without changing your prescription process."
+    body: "You mentioned comfort is your top priority. Catheter coatings, tip design, and size all affect how a catheter feels. Hydrophilic and pre-lubricated options are designed to minimise friction. A specialist provider can review your current catheter and discuss alternatives that may be more comfortable — without changing your prescription process. This is a free, no-obligation conversation."
   },
   easy_reorder: {
     topic: "reorder",
@@ -118,20 +118,20 @@ const q6Cards: Record<string, InsightCardContent> = {
   }
 };
 
-export function getResultCards(q3Value?: string, q6Value?: string): InsightCardContent[] {
-  if (!q3Value || !q6Value) {
+export function getResultCards(frustrationValue?: string, priorityValue?: string): InsightCardContent[] {
+  if (!frustrationValue || !priorityValue) {
     return [];
   }
   const cards: InsightCardContent[] = [];
-  const primary = q3Cards[q3Value];
-  const supplementary = q6Cards[q6Value];
+  const primary = q3Cards[frustrationValue];
+  const supplementary = q6Cards[priorityValue];
 
   if (primary) {
     cards.push(primary);
   }
 
-  const primaryTopic = q3ToTopic[q3Value];
-  const supplementaryTopic = q6ToTopic[q6Value];
+  const primaryTopic = q3ToTopic[frustrationValue];
+  const supplementaryTopic = q6ToTopic[priorityValue];
   if (supplementary && primaryTopic !== supplementaryTopic) {
     cards.push(supplementary);
   }
@@ -139,15 +139,15 @@ export function getResultCards(q3Value?: string, q6Value?: string): InsightCardC
   return cards;
 }
 
-export function getSupplyNudge(q7Value?: string): string | null {
-  if (q7Value === "collect") {
-    return "💡 Did you know? You don't have to collect your supplies in person. Specialist catheter providers can deliver directly to your door, for free, through the NHS. They handle the prescription process with your GP so you don't have to.";
+export function getSupplyNudge(supplyValue?: string): string | null {
+  if (supplyValue === "collect") {
+    return "💡 Did you know? You don't have to collect your supplies in person. Specialist catheter providers can deliver directly to your door, for free, through the NHS. They handle the prescription process with your GP so you don't have to. Connecting with a specialist is the quickest way to get this set up.";
   }
-  if (q7Value === "unsure") {
-    return "💡 Worth knowing: Even if someone else currently manages your supplies, you can choose to work with a specialist provider who delivers to your home and gives you a direct line to a dedicated support team.";
+  if (supplyValue === "unsure") {
+    return "💡 Worth knowing: Even if someone else currently manages your supplies, you can choose to work with a specialist provider who delivers to your home and gives you a direct line to a dedicated support team. Connecting with a specialist is the quickest way to get this set up.";
   }
-  if (q7Value === "mix") {
-    return "💡 Tip: Home delivery suppliers can manage your entire repeat prescription. No more trips to the pharmacy, no more chasing your GP. They contact you before each delivery to check everything's right.";
+  if (supplyValue === "mix") {
+    return "💡 Tip: Home delivery suppliers can manage your entire repeat prescription — no more trips to the pharmacy, no more chasing your GP. They contact you before each delivery to check everything's right. Connecting with a specialist is the quickest way to get this set up.";
   }
   return null;
 }

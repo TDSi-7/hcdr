@@ -1,18 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
 import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
 
-export default function ContactPage() {
+const allowedSources = new Set(["results_top", "results_bottom"]);
+
+function ContactPageInner() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawSource = searchParams?.get("source") ?? null;
+  const source = rawSource && allowedSources.has(rawSource) ? rawSource : null;
 
   async function submit(payload: ContactPayload) {
     setSubmitting(true);
@@ -25,7 +30,8 @@ export default function ContactPage() {
           ...payload,
           answers: loadAnswers(),
           profile: loadProfile(),
-          sessionId: getOrCreateSessionId()
+          sessionId: getOrCreateSessionId(),
+          source
         })
       });
 
@@ -89,5 +95,13 @@ export default function ContactPage() {
       </section>
       <Footer />
     </main>
+  );
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={null}>
+      <ContactPageInner />
+    </Suspense>
   );
 }

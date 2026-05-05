@@ -55,21 +55,24 @@ export async function POST(request: NextRequest) {
         q5: answers[5] ?? null,
         q6: answers[6] ?? null,
         q7: answers[7] ?? null,
-        q8: answers[8] ?? null
+        q8: answers[8] ?? null,
+        q9: answers[9] ?? null
       };
       const variant1 = baseQuizPayload;
       const variant2 = { ...baseQuizPayload };
-      delete variant2.event_type;
+      delete variant2.q9;
       const variant3 = { ...variant2 };
-      delete variant3.session_id;
-      const variant4 = {
+      delete variant3.event_type;
+      const variant4 = { ...variant3 };
+      delete variant4.session_id;
+      const variant5 = {
         session_id: sessionId,
         event_type: eventType
       };
-      const variant5 = {
+      const variant6 = {
         event_type: eventType
       };
-      const variants = [variant1, variant2, variant3, variant4, variant5];
+      const variants = [variant1, variant2, variant3, variant4, variant5, variant6];
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {

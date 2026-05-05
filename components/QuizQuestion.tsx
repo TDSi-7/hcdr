@@ -9,15 +9,26 @@ type QuizQuestionProps = {
 };
 
 export function QuizQuestion({ question, answer, onSelect }: QuizQuestionProps) {
+  const isContain = question.imageFit === "contain";
   return (
     <div className="grid gap-6 rounded-lg border border-hcdr-light-grey bg-white p-4 shadow-sm md:grid-cols-[280px_1fr] md:p-6">
-      <div className="overflow-hidden rounded-lg">
+      <div
+        className={
+          isContain
+            ? "mx-auto flex aspect-square w-full max-w-[260px] items-center justify-center self-start overflow-hidden rounded-lg md:max-w-none"
+            : "overflow-hidden rounded-lg"
+        }
+      >
         <SmartImage
           src={question.image}
           alt={question.stageTitle}
           width={560}
           height={560}
-          className="h-[220px] w-full object-cover md:h-full"
+          className={
+            isContain
+              ? "h-full w-full object-contain"
+              : "h-[220px] w-full object-cover md:h-full"
+          }
         />
       </div>
       <div>

@@ -24,6 +24,10 @@ export default function HomePage() {
 
   const quizCovers = [
     {
+      title: "Your catheter type",
+      body: "Whether you use an intermittent, indwelling, or suprapubic catheter, or a catheter valve"
+    },
+    {
       title: "Your catheter experience",
       body: "How long you've been catheterising, how often, and where you find it hardest to manage your routine"
     },
@@ -88,7 +92,7 @@ export default function HomePage() {
 
         <section className="mt-12">
           <h2 className="text-2xl font-semibold text-hcdr-dark">What This Quiz Covers</h2>
-          <p className="mt-3 text-hcdr-body">In under 2 minutes, you&apos;ll answer 8 straightforward questions about:</p>
+          <p className="mt-3 text-hcdr-body">In under 2 minutes, you&apos;ll answer 9 straightforward questions about:</p>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {quizCovers.map((item, index) => (
               <article key={item.title} className="rounded-lg border border-hcdr-light-grey bg-hcdr-warm-bg p-4">
