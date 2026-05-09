@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { quizLabelByQuestionAndValue, quizQuestions } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
     }
 
     const answers = body.answers ?? {};
+    const missingAnswers = quizQuestions.filter((question) => !answers[question.id]);
+    if (missingAnswers.length > 0) {
+      return NextResponse.json({ error: "Please complete the quiz before submitting your details." }, { status: 400 });
+    }
+
     const profile = body.profile ?? "";
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
@@ -118,43 +123,6 @@ export async function POST(request: NextRequest) {
         delete v.current_provider;
         delete v.guide_consent;
         return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
       })()
     ];
 
@@ -199,7 +167,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error submitting form:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to submit. Please try again later." },
+      { error: "Failed to submit. Please try again later." },
       { status: 500 }
     );
   }
