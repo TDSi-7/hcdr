@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { hasCompleteValidQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
 import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
@@ -61,7 +61,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    if (!hasCompleteValidQuizAnswers(storedAnswers)) {
       router.replace("/quiz");
       return;
     }

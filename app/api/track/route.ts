@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasCompleteValidQuizAnswers } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
   sessionId?: string;
   eventType?: string;
   profile?: "A" | "B" | "C" | null;
-  answers?: Record<number, string>;
+  answers?: unknown;
 };
 
 function clean(value: unknown): string {
@@ -38,6 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      if (!hasCompleteValidQuizAnswers(answers)) {
+        console.warn("Skipping quiz completion insert with missing or invalid answers");
+        return NextResponse.json({ ok: true });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
