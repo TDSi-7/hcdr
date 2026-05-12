@@ -7,6 +7,7 @@ import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
+import { hasCompleteValidQuizAnswers } from "@/lib/quiz-data";
 import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
@@ -23,12 +24,17 @@ function ContactPageInner() {
     setSubmitting(true);
     setSubmitError("");
     try {
+      const answers = loadAnswers();
+      if (!hasCompleteValidQuizAnswers(answers)) {
+        throw new Error("Please complete the quiz before submitting your details.");
+      }
+
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
+          answers,
           profile: loadProfile(),
           sessionId: getOrCreateSessionId(),
           source
