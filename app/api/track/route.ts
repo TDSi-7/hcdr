@@ -13,6 +13,14 @@ function clean(value: unknown): string {
   return value.trim().replace(/[<>]/g, "");
 }
 
+function omitKeys(source: Record<string, unknown>, keys: string[]) {
+  const copy = { ...source };
+  for (const key of keys) {
+    delete copy[key];
+  }
+  return copy;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as TrackBody;
@@ -58,21 +66,35 @@ export async function POST(request: NextRequest) {
         q8: answers[8] ?? null,
         q9: answers[9] ?? null
       };
-      const variant1 = baseQuizPayload;
-      const variant2 = { ...baseQuizPayload };
-      delete variant2.q9;
-      const variant3 = { ...variant2 };
-      delete variant3.event_type;
-      const variant4 = { ...variant3 };
-      delete variant4.session_id;
-      const variant5 = {
+      const legacyQuizPayload: Record<string, unknown> = {
+        session_id: sessionId,
+        event_type: eventType,
+        q1: answers[1] ?? null,
+        q2: answers[3] ?? null,
+        q3: answers[4] ?? null,
+        q4: answers[5] ?? null,
+        q5: answers[6] ?? null,
+        q6: answers[7] ?? null,
+        q7: answers[8] ?? null,
+        q8: answers[9] ?? null
+      };
+      const minimalWithSession = {
         session_id: sessionId,
         event_type: eventType
       };
-      const variant6 = {
+      const minimalEventOnly = {
         event_type: eventType
       };
-      const variants = [variant1, variant2, variant3, variant4, variant5, variant6];
+      const variants = [
+        baseQuizPayload,
+        omitKeys(baseQuizPayload, ["event_type"]),
+        omitKeys(baseQuizPayload, ["event_type", "session_id"]),
+        legacyQuizPayload,
+        omitKeys(legacyQuizPayload, ["event_type"]),
+        omitKeys(legacyQuizPayload, ["event_type", "session_id"]),
+        minimalWithSession,
+        minimalEventOnly
+      ];
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {
