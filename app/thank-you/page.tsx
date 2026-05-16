@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 
-const guideUrl = "https://healthcaredeliveryreviews.co.uk";
+const guideUrl = "https://healthcaredeliveryreviews.co.uk/the-ultimate-guide-to-intermittent-self-catheterisation/";
 
 export default function ThankYouPage() {
   return (
