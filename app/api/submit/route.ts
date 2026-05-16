@@ -39,8 +39,10 @@ export async function POST(request: NextRequest) {
     const email = clean(body.email);
     const phone = clean(body.phone).replace(/\s+/g, "");
     const currentProvider = clean(body.currentProvider);
+    const guideConsent = body.guideConsent === true;
+    const referralConsent = body.referralConsent === true;
 
-    if (!firstName || !lastName || !email || !phone || !currentProvider || !body.referralConsent) {
+    if (!firstName || !lastName || !email || !phone || !currentProvider || !referralConsent) {
       return NextResponse.json({ error: "Please complete all required fields." }, { status: 400 });
     }
     if (!emailRegex.test(email)) {
@@ -79,8 +81,8 @@ export async function POST(request: NextRequest) {
       q8: answerLabel(8, answers[8]),
       q9: answerLabel(9, answers[9]),
       result_profile: profile || null,
-      guide_consent: Boolean(body.guideConsent),
-      referral_consent: Boolean(body.referralConsent)
+      guide_consent: guideConsent,
+      referral_consent: referralConsent
     };
 
     // Attempt inserts in order from richest to most stripped-down so we still
