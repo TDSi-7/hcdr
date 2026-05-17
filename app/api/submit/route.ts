@@ -83,8 +83,9 @@ export async function POST(request: NextRequest) {
       referral_consent: Boolean(body.referralConsent)
     };
 
-    // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // Attempt inserts in order from richest to leaner only for columns that may
+    // not exist yet. Do not drop the required lead context: returning success
+    // without provider, consent, or quiz answers silently loses the referral.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
       (() => {
@@ -106,54 +107,6 @@ export async function POST(request: NextRequest) {
         delete v.q9;
         delete v.session_id;
         delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
         return v;
       })()
     ];
