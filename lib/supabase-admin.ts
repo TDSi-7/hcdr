@@ -1,6 +1,5 @@
 function getSupabaseConfig() {
-  const defaultUrl = "https://sowufofobpspqmjviehl.supabase.co";
-  const url = (process.env.SUPABASE_URL || defaultUrl).trim().replace(/\/+$/, "");
+  const url = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
   const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 
   if (!url || !serviceRoleKey) {
