@@ -1,34 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
 import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
+import { hasCompleteQuizAnswers } from "@/lib/quiz-validation";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
 
 function ContactPageInner() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [hasQuizState, setHasQuizState] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawSource = searchParams?.get("source") ?? null;
   const source = rawSource && allowedSources.has(rawSource) ? rawSource : null;
 
+  useEffect(() => {
+    if (!hasCompleteQuizAnswers(loadAnswers())) {
+      router.replace("/quiz");
+      return;
+    }
+
+    setHasQuizState(true);
+  }, [router]);
+
   async function submit(payload: ContactPayload) {
     setSubmitting(true);
     setSubmitError("");
     try {
+      const answers = loadAnswers();
+      if (!hasCompleteQuizAnswers(answers)) {
+        throw new Error("Please complete the quiz before submitting your contact details.");
+      }
+
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
+          answers,
           profile: loadProfile(),
           sessionId: getOrCreateSessionId(),
           source
@@ -59,6 +75,8 @@ function ContactPageInner() {
       setSubmitting(false);
     }
   }
+
+  if (!hasQuizState) return null;
 
   return (
     <main className="bg-hcdr-warm">
