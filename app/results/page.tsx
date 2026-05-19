@@ -10,6 +10,7 @@ import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
 import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
+import { hasCompleteQuizAnswers } from "@/lib/quiz-validation";
 import { trackQuizEvent } from "@/lib/tracking";
 
 const guideUrl = "https://healthcaredeliveryreviews.co.uk/the-ultimate-guide-to-intermittent-self-catheterisation/";
@@ -61,7 +62,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    if (!hasCompleteQuizAnswers(storedAnswers)) {
       router.replace("/quiz");
       return;
     }
