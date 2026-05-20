@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { hasCompleteQuizAnswers } from "@/lib/storage";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -30,6 +31,14 @@ function answerLabel(questionId: number, answerValue: string | undefined) {
   return quizLabelByQuestionAndValue[questionId]?.[answerValue] ?? answerValue;
 }
 
+function withoutKeys(payload: Record<string, unknown>, keys: string[]) {
+  const next = { ...payload };
+  keys.forEach((key) => {
+    delete next[key];
+  });
+  return next;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as SubmissionBody;
@@ -51,6 +60,10 @@ export async function POST(request: NextRequest) {
     }
 
     const answers = body.answers ?? {};
+    if (!hasCompleteQuizAnswers(answers)) {
+      return NextResponse.json({ error: "Please complete the quiz before submitting your details." }, { status: 400 });
+    }
+
     const profile = body.profile ?? "";
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
@@ -83,79 +96,13 @@ export async function POST(request: NextRequest) {
       referral_consent: Boolean(body.referralConsent)
     };
 
-    // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // Only strip optional/derived metadata. Contact details, provider,
+    // consents, and quiz responses must never be silently dropped.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
-      })()
+      withoutKeys(leadPayload, ["source"]),
+      withoutKeys(leadPayload, ["source", "catheter_type"]),
+      withoutKeys(leadPayload, ["source", "catheter_type", "session_id", "result_profile"])
     ];
 
     let inserted = false;
