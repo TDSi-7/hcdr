@@ -1,6 +1,17 @@
-export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
-export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
+export const REQUIRED_QUIZ_QUESTION_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers_v2";
+export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile_v2";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
+
+const LEGACY_QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
+const LEGACY_QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
+
+export function hasCompleteQuizAnswers(answers: Record<number, string>): boolean {
+  return REQUIRED_QUIZ_QUESTION_IDS.every((questionId) => {
+    const answer = answers[questionId];
+    return typeof answer === "string" && answer.trim().length > 0;
+  });
+}
 
 export function loadAnswers(): Record<number, string> {
   if (typeof window === "undefined") {
@@ -48,6 +59,8 @@ export function clearQuizState(): void {
   }
   window.sessionStorage.removeItem(QUIZ_ANSWERS_KEY);
   window.sessionStorage.removeItem(QUIZ_PROFILE_KEY);
+  window.sessionStorage.removeItem(LEGACY_QUIZ_ANSWERS_KEY);
+  window.sessionStorage.removeItem(LEGACY_QUIZ_PROFILE_KEY);
   window.sessionStorage.removeItem(QUIZ_SESSION_KEY);
 }
 

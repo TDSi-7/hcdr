@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasCompleteQuizAnswers } from "@/lib/storage";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -11,6 +12,14 @@ type TrackBody = {
 function clean(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.trim().replace(/[<>]/g, "");
+}
+
+function withoutKeys(payload: Record<string, unknown>, keys: string[]) {
+  const next = { ...payload };
+  keys.forEach((key) => {
+    delete next[key];
+  });
+  return next;
 }
 
 export async function POST(request: NextRequest) {
@@ -38,6 +47,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      if (!hasCompleteQuizAnswers(answers)) {
+        return NextResponse.json({ error: "Incomplete quiz answers" }, { status: 400 });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -48,6 +61,7 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
+        result_profile: profile || null,
         q1: answers[1] ?? null,
         q2: answers[2] ?? null,
         q3: answers[3] ?? null,
@@ -58,21 +72,12 @@ export async function POST(request: NextRequest) {
         q8: answers[8] ?? null,
         q9: answers[9] ?? null
       };
-      const variant1 = baseQuizPayload;
-      const variant2 = { ...baseQuizPayload };
-      delete variant2.q9;
-      const variant3 = { ...variant2 };
-      delete variant3.event_type;
-      const variant4 = { ...variant3 };
-      delete variant4.session_id;
-      const variant5 = {
-        session_id: sessionId,
-        event_type: eventType
-      };
-      const variant6 = {
-        event_type: eventType
-      };
-      const variants = [variant1, variant2, variant3, variant4, variant5, variant6];
+      const variants = [
+        baseQuizPayload,
+        withoutKeys(baseQuizPayload, ["event_type"]),
+        withoutKeys(baseQuizPayload, ["result_profile"]),
+        withoutKeys(baseQuizPayload, ["event_type", "result_profile"])
+      ];
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {
