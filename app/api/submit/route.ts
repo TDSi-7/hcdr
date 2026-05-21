@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasCompleteQuizAnswers } from "@/lib/quiz-answers";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -51,7 +53,11 @@ export async function POST(request: NextRequest) {
     }
 
     const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    if (!hasCompleteQuizAnswers(answers)) {
+      return NextResponse.json({ error: "Please complete the quiz before submitting your details." }, { status: 400 });
+    }
+
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
