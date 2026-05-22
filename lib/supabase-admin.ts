@@ -1,3 +1,15 @@
+export class SupabaseInsertError extends Error {
+  constructor(
+    message: string,
+    readonly table: string,
+    readonly status: number,
+    readonly responseBody: string
+  ) {
+    super(message);
+    this.name = "SupabaseInsertError";
+  }
+}
+
 function getSupabaseConfig() {
   const defaultUrl = "https://sowufofobpspqmjviehl.supabase.co";
   const url = (process.env.SUPABASE_URL || defaultUrl).trim().replace(/\/+$/, "");
@@ -36,6 +48,21 @@ export async function insertSupabaseRow(table: string, row: Record<string, unkno
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(`Supabase insert failed (${table}): ${message}`);
+    throw new SupabaseInsertError(`Supabase insert failed (${table}): ${message}`, table, response.status, message);
   }
+}
+
+export function isSupabaseMissingColumnError(error: unknown): boolean {
+  const message = error instanceof SupabaseInsertError ? error.responseBody : error instanceof Error ? error.message : "";
+  return (
+    /\bPGRST204\b/i.test(message) ||
+    /\b42703\b/i.test(message) ||
+    /column .* (does not exist|not found|could not be found)/i.test(message) ||
+    /could not find .* column/i.test(message)
+  );
+}
+
+export function isSupabaseMissingTableError(error: unknown): boolean {
+  const message = error instanceof SupabaseInsertError ? error.responseBody : error instanceof Error ? error.message : "";
+  return /\b42P01\b/i.test(message) || /\bPGRST205\b/i.test(message) || /relation .* does not exist/i.test(message);
 }
