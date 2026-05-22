@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
-import { insertSupabaseRow } from "@/lib/supabase-admin";
+import { coerceQuizAnswers, hasCompleteQuizAnswers } from "@/lib/quiz-validation";
+import { getProfile } from "@/lib/result-logic";
+import { insertSupabaseRow, isSupabaseMissingColumnError, isSupabaseMissingTableError } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
   firstName: string;
@@ -9,7 +11,6 @@ type SubmissionBody = {
   phone: string;
   currentProvider?: string;
   answers: Record<number, string>;
-  profile: "A" | "B" | "C" | null;
   guideConsent: boolean;
   referralConsent: boolean;
   sessionId?: string;
@@ -39,8 +40,10 @@ export async function POST(request: NextRequest) {
     const email = clean(body.email);
     const phone = clean(body.phone).replace(/\s+/g, "");
     const currentProvider = clean(body.currentProvider);
+    const referralConsent = body.referralConsent === true;
+    const guideConsent = body.guideConsent === true;
 
-    if (!firstName || !lastName || !email || !phone || !currentProvider || !body.referralConsent) {
+    if (!firstName || !lastName || !email || !phone || !currentProvider || !referralConsent) {
       return NextResponse.json({ error: "Please complete all required fields." }, { status: 400 });
     }
     if (!emailRegex.test(email)) {
@@ -50,8 +53,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid UK phone number format." }, { status: 400 });
     }
 
-    const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    const answers = coerceQuizAnswers(body.answers);
+    if (!hasCompleteQuizAnswers(answers)) {
+      return NextResponse.json({ error: "Please complete the quiz before submitting your details." }, { status: 400 });
+    }
+
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
@@ -78,13 +85,13 @@ export async function POST(request: NextRequest) {
       q7: answerLabel(7, answers[7]),
       q8: answerLabel(8, answers[8]),
       q9: answerLabel(9, answers[9]),
-      result_profile: profile || null,
-      guide_consent: Boolean(body.guideConsent),
-      referral_consent: Boolean(body.referralConsent)
+      result_profile: profile,
+      guide_consent: guideConsent,
+      referral_consent: referralConsent
     };
 
-    // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // Fall back only for known schema-drift columns; never accept a lead that
+    // drops required quiz answers or referral consent.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
       (() => {
@@ -107,54 +114,6 @@ export async function POST(request: NextRequest) {
         delete v.session_id;
         delete v.result_profile;
         return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
       })()
     ];
 
@@ -168,6 +127,12 @@ export async function POST(request: NextRequest) {
           break;
         } catch (err) {
           failures.push(`${table}: ${String(err)}`);
+          if (isSupabaseMissingTableError(err)) {
+            break;
+          }
+          if (!isSupabaseMissingColumnError(err)) {
+            throw err;
+          }
         }
       }
       if (inserted) break;
@@ -181,7 +146,7 @@ export async function POST(request: NextRequest) {
       const eventBase = {
         session_id: sessionId,
         event_type: "contact_submitted",
-        profile: profile || null
+        profile
       };
       try {
         await insertSupabaseRow(eventsTable, { ...eventBase, source: source || null });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { insertSupabaseRow } from "@/lib/supabase-admin";
+import { coerceQuizAnswers, hasCompleteQuizAnswers } from "@/lib/quiz-validation";
+import { insertSupabaseRow, isSupabaseMissingColumnError, isSupabaseMissingTableError } from "@/lib/supabase-admin";
 
 type TrackBody = {
   sessionId?: string;
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
     const profile = clean(body.profile ?? "");
-    const answers = body.answers ?? {};
+    const answers = coerceQuizAnswers(body.answers);
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
@@ -38,6 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      if (!hasCompleteQuizAnswers(answers)) {
+        console.warn("Quiz completion insert skipped: incomplete answers");
+        return NextResponse.json({ ok: true });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -63,16 +69,7 @@ export async function POST(request: NextRequest) {
       delete variant2.q9;
       const variant3 = { ...variant2 };
       delete variant3.event_type;
-      const variant4 = { ...variant3 };
-      delete variant4.session_id;
-      const variant5 = {
-        session_id: sessionId,
-        event_type: eventType
-      };
-      const variant6 = {
-        event_type: eventType
-      };
-      const variants = [variant1, variant2, variant3, variant4, variant5, variant6];
+      const variants = [variant1, variant2, variant3];
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {
@@ -83,6 +80,13 @@ export async function POST(request: NextRequest) {
             break;
           } catch (err) {
             errors.push(`${table}: ${String(err)}`);
+            if (isSupabaseMissingTableError(err)) {
+              break;
+            }
+            if (!isSupabaseMissingColumnError(err)) {
+              console.warn("Quiz completion insert failed (non-blocking):", String(err));
+              break;
+            }
           }
         }
         if (saved) break;

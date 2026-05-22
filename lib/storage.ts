@@ -1,6 +1,14 @@
+import { coerceQuizAnswers, hasCompleteQuizAnswers } from "@/lib/quiz-validation";
+
 export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
 export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
+export const QUIZ_ANSWERS_SCHEMA_VERSION = 2;
+
+type StoredAnswers = {
+  version: number;
+  answers: Record<number, string>;
+};
 
 export function loadAnswers(): Record<number, string> {
   if (typeof window === "undefined") {
@@ -11,7 +19,22 @@ export function loadAnswers(): Record<number, string> {
     return {};
   }
   try {
-    return JSON.parse(raw) as Record<number, string>;
+    const parsed = JSON.parse(raw) as StoredAnswers | Record<number, string> | null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    if ("version" in parsed && parsed.version === QUIZ_ANSWERS_SCHEMA_VERSION) {
+      return coerceQuizAnswers(parsed.answers);
+    }
+
+    // Pre-version storage was raw answers. Only accept it if it already matches
+    // the current 9-question schema; older 8-question sessions must restart.
+    if (!("version" in parsed) && hasCompleteQuizAnswers(parsed)) {
+      return coerceQuizAnswers(parsed);
+    }
+
+    return {};
   } catch {
     return {};
   }
@@ -21,7 +44,10 @@ export function saveAnswers(answers: Record<number, string>): void {
   if (typeof window === "undefined") {
     return;
   }
-  window.sessionStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(answers));
+  window.sessionStorage.setItem(
+    QUIZ_ANSWERS_KEY,
+    JSON.stringify({ version: QUIZ_ANSWERS_SCHEMA_VERSION, answers })
+  );
 }
 
 export function saveProfile(profile: "A" | "B" | "C"): void {
