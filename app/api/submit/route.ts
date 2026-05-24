@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { buildLeadPayloadVariants } from "@/lib/lead-payload-variants";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -85,78 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Attempt inserts in order from richest to most stripped-down so we still
     // succeed if some columns don't yet exist on the Supabase table.
-    const payloadVariants: Array<Record<string, unknown>> = [
-      leadPayload,
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
-      })()
-    ];
+    const payloadVariants = buildLeadPayloadVariants(leadPayload);
 
     let inserted = false;
     const failures: string[] = [];
