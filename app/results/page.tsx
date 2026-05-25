@@ -7,9 +7,10 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getValidQuizAnswers, hasCompleteQuizAnswers } from "@/lib/quiz-validation";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
-import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
+import { clearQuizState, getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
 import { trackQuizEvent } from "@/lib/tracking";
 
 const guideUrl = "https://healthcaredeliveryreviews.co.uk/the-ultimate-guide-to-intermittent-self-catheterisation/";
@@ -61,11 +62,12 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    if (!hasCompleteQuizAnswers(storedAnswers)) {
+      clearQuizState();
       router.replace("/quiz");
       return;
     }
-    setAnswers(storedAnswers);
+    setAnswers(getValidQuizAnswers(storedAnswers));
   }, [router]);
 
   const profile = useMemo<ProfileKey | null>(() => {

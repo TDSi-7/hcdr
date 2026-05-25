@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getValidQuizAnswers, hasCompleteQuizAnswers } from "@/lib/quiz-validation";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -8,8 +10,8 @@ type SubmissionBody = {
   email: string;
   phone: string;
   currentProvider?: string;
-  answers: Record<number, string>;
-  profile: "A" | "B" | "C" | null;
+  answers?: unknown;
+  profile?: "A" | "B" | "C" | null;
   guideConsent: boolean;
   referralConsent: boolean;
   sessionId?: string;
@@ -28,6 +30,14 @@ function clean(value: unknown): string {
 function answerLabel(questionId: number, answerValue: string | undefined) {
   if (!answerValue) return "";
   return quizLabelByQuestionAndValue[questionId]?.[answerValue] ?? answerValue;
+}
+
+function withoutFields(payload: Record<string, unknown>, fields: string[]) {
+  const variant = { ...payload };
+  for (const field of fields) {
+    delete variant[field];
+  }
+  return variant;
 }
 
 export async function POST(request: NextRequest) {
@@ -50,8 +60,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid UK phone number format." }, { status: 400 });
     }
 
-    const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    const answers = getValidQuizAnswers(body.answers);
+    if (!hasCompleteQuizAnswers(answers)) {
+      return NextResponse.json(
+        { error: "Please complete the quiz before submitting your contact details." },
+        { status: 400 }
+      );
+    }
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
@@ -83,79 +99,15 @@ export async function POST(request: NextRequest) {
       referral_consent: Boolean(body.referralConsent)
     };
 
-    // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // Attempt inserts in order from richest to most stripped-down, but never
+    // drop quiz answers from a successful lead submission.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
-      })()
+      withoutFields(leadPayload, ["source"]),
+      withoutFields(leadPayload, ["source", "catheter_type"]),
+      withoutFields(leadPayload, ["source", "catheter_type", "session_id"]),
+      withoutFields(leadPayload, ["source", "catheter_type", "session_id", "result_profile"]),
+      withoutFields(leadPayload, ["source", "catheter_type", "session_id", "result_profile", "guide_consent"])
     ];
 
     let inserted = false;
