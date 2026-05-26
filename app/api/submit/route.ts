@@ -82,6 +82,25 @@ export async function POST(request: NextRequest) {
       guide_consent: Boolean(body.guideConsent),
       referral_consent: Boolean(body.referralConsent)
     };
+    const legacyLeadPayload: Record<string, unknown> = {
+      session_id: sessionId || null,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      current_provider: currentProvider,
+      q1: answerLabel(1, answers[1]),
+      q2: answerLabel(3, answers[3]),
+      q3: answerLabel(4, answers[4]),
+      q4: answerLabel(5, answers[5]),
+      q5: answerLabel(6, answers[6]),
+      q6: answerLabel(7, answers[7]),
+      q7: answerLabel(8, answers[8]),
+      q8: answerLabel(9, answers[9]),
+      result_profile: profile || null,
+      guide_consent: Boolean(body.guideConsent),
+      referral_consent: Boolean(body.referralConsent)
+    };
 
     // Attempt inserts in order from richest to most stripped-down so we still
     // succeed if some columns don't yet exist on the Supabase table.
@@ -96,23 +115,17 @@ export async function POST(request: NextRequest) {
         const v = { ...leadPayload };
         delete v.source;
         delete v.catheter_type;
-        delete v.q9;
         return v;
       })(),
+      legacyLeadPayload,
       (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
+        const v = { ...legacyLeadPayload };
         delete v.session_id;
         delete v.result_profile;
         return v;
       })(),
       (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
+        const v = { ...legacyLeadPayload };
         delete v.session_id;
         delete v.result_profile;
         delete v.current_provider;
@@ -120,9 +133,7 @@ export async function POST(request: NextRequest) {
         return v;
       })(),
       (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
+        const v = { ...legacyLeadPayload };
         delete v.session_id;
         delete v.result_profile;
         delete v.guide_consent;
@@ -134,13 +145,10 @@ export async function POST(request: NextRequest) {
         delete v.q6;
         delete v.q7;
         delete v.q8;
-        delete v.q9;
         return v;
       })(),
       (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
+        const v = { ...legacyLeadPayload };
         delete v.session_id;
         delete v.result_profile;
         delete v.guide_consent;
@@ -152,7 +160,6 @@ export async function POST(request: NextRequest) {
         delete v.q6;
         delete v.q7;
         delete v.q8;
-        delete v.q9;
         delete v.current_provider;
         return v;
       })()
