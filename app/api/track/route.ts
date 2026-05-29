@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       console.warn("Event insert failed (non-blocking):", eventsError);
     }
 
-    if (eventType === "results_viewed") {
+    if (eventType === "results_viewed" && isCompleteQuizAnswers(answers)) {
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",

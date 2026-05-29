@@ -155,3 +155,9 @@ export const quizLabelByQuestionAndValue = quizQuestions.reduce<Record<number, R
   },
   {}
 );
+
+export function isCompleteQuizAnswers(answers: Record<number, string>): boolean {
+  return quizQuestions.every((question) =>
+    question.options.some((option) => option.value === answers[question.id])
+  );
+}
