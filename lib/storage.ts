@@ -1,6 +1,8 @@
-export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
-export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
-export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
+export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers_v5_1";
+export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile_v5_1";
+export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id_v5_1";
+
+const LEGACY_QUIZ_STATE_KEYS = ["hcdr_quiz_answers", "hcdr_quiz_profile", "hcdr_quiz_session_id"];
 
 export function loadAnswers(): Record<number, string> {
   if (typeof window === "undefined") {
@@ -49,6 +51,7 @@ export function clearQuizState(): void {
   window.sessionStorage.removeItem(QUIZ_ANSWERS_KEY);
   window.sessionStorage.removeItem(QUIZ_PROFILE_KEY);
   window.sessionStorage.removeItem(QUIZ_SESSION_KEY);
+  LEGACY_QUIZ_STATE_KEYS.forEach((key) => window.sessionStorage.removeItem(key));
 }
 
 export function getOrCreateSessionId(): string {

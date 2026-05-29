@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { isCompleteQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -30,6 +30,10 @@ function answerLabel(questionId: number, answerValue: string | undefined) {
   return quizLabelByQuestionAndValue[questionId]?.[answerValue] ?? answerValue;
 }
 
+function isProfileKey(value: string): value is "A" | "B" | "C" {
+  return value === "A" || value === "B" || value === "C";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as SubmissionBody;
@@ -55,6 +59,14 @@ export async function POST(request: NextRequest) {
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
+
+    if (!isCompleteQuizAnswers(answers) || !isProfileKey(profile)) {
+      return NextResponse.json(
+        { error: "Your quiz answers are out of date. Please retake the quiz before submitting." },
+        { status: 400 }
+      );
+    }
+
     const catheterType = answerLabel(2, answers[2]);
     const leadsTables = Array.from(
       new Set([process.env.SUPABASE_LEADS_TABLE || "catheter_leads", "catheter_leads"])
