@@ -1,3 +1,5 @@
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
+
 export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
 export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
@@ -11,14 +13,23 @@ export function loadAnswers(): Record<number, string> {
     return {};
   }
   try {
-    return JSON.parse(raw) as Record<number, string>;
+    const answers = JSON.parse(raw) as unknown;
+    if (!isCompleteQuizAnswers(answers)) {
+      clearQuizState();
+      return {};
+    }
+    return answers;
   } catch {
+    clearQuizState();
     return {};
   }
 }
 
 export function saveAnswers(answers: Record<number, string>): void {
   if (typeof window === "undefined") {
+    return;
+  }
+  if (!isCompleteQuizAnswers(answers)) {
     return;
   }
   window.sessionStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(answers));

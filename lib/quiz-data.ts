@@ -155,3 +155,20 @@ export const quizLabelByQuestionAndValue = quizQuestions.reduce<Record<number, R
   },
   {}
 );
+
+const quizOptionValuesByQuestion = quizQuestions.reduce<Record<number, Set<string>>>((acc, question) => {
+  acc[question.id] = new Set(question.options.map((option) => option.value));
+  return acc;
+}, {});
+
+export function isCompleteQuizAnswers(answers: unknown): answers is Record<number, string> {
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+    return false;
+  }
+
+  const answerMap = answers as Record<number, unknown>;
+  return quizQuestions.every((question) => {
+    const answer = answerMap[question.id];
+    return typeof answer === "string" && quizOptionValuesByQuestion[question.id]?.has(answer);
+  });
+}

@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { ProgressBar } from "@/components/ProgressBar";
 import { QuizQuestion } from "@/components/QuizQuestion";
-import { quizQuestions } from "@/lib/quiz-data";
+import { isCompleteQuizAnswers, quizQuestions } from "@/lib/quiz-data";
 import { getProfile } from "@/lib/result-logic";
 import { saveAnswers, saveProfile } from "@/lib/storage";
 
@@ -30,8 +30,11 @@ export default function QuizPage() {
       setStep((prev) => prev + 1);
       return;
     }
-    const profile = getProfile(answers);
-    saveAnswers(answers);
+    const completedAnswers = { ...answers, [question.id]: selectedAnswer };
+    if (!isCompleteQuizAnswers(completedAnswers)) return;
+
+    const profile = getProfile(completedAnswers);
+    saveAnswers(completedAnswers);
     saveProfile(profile);
     router.push("/results");
   }
