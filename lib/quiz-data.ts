@@ -155,3 +155,19 @@ export const quizLabelByQuestionAndValue = quizQuestions.reduce<Record<number, R
   },
   {}
 );
+
+export function hasAnyQuizAnswers(answers: unknown): boolean {
+  return Boolean(answers && typeof answers === "object" && !Array.isArray(answers) && Object.keys(answers).length > 0);
+}
+
+export function areCompleteCurrentQuizAnswers(answers: unknown): answers is Record<number, string> {
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+    return false;
+  }
+
+  const answerMap = answers as Record<number, unknown>;
+  return quizQuestions.every((question) => {
+    const answer = answerMap[question.id];
+    return typeof answer === "string" && question.options.some((option) => option.value === answer);
+  });
+}

@@ -1,3 +1,5 @@
+import { areCompleteCurrentQuizAnswers } from "./quiz-data";
+
 export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
 export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
@@ -11,7 +13,8 @@ export function loadAnswers(): Record<number, string> {
     return {};
   }
   try {
-    return JSON.parse(raw) as Record<number, string>;
+    const parsed = JSON.parse(raw) as unknown;
+    return areCompleteCurrentQuizAnswers(parsed) ? parsed : {};
   } catch {
     return {};
   }

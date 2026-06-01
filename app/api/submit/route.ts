@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { areCompleteCurrentQuizAnswers, hasAnyQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -50,8 +51,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid UK phone number format." }, { status: 400 });
     }
 
-    const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    const receivedAnswers = body.answers ?? {};
+    if (hasAnyQuizAnswers(receivedAnswers) && !areCompleteCurrentQuizAnswers(receivedAnswers)) {
+      return NextResponse.json({ error: "Please retake the quiz before submitting your details." }, { status: 400 });
+    }
+    const answers = areCompleteCurrentQuizAnswers(receivedAnswers) ? receivedAnswers : {};
+    const profile = areCompleteCurrentQuizAnswers(answers) ? getProfile(answers) : "";
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
