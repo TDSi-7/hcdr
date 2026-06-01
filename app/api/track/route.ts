@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { areCompleteCurrentQuizAnswers } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -18,11 +20,17 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as TrackBody;
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
-    const profile = clean(body.profile ?? "");
     const answers = body.answers ?? {};
+    const hasCompleteAnswers = areCompleteCurrentQuizAnswers(answers);
+    const profile = hasCompleteAnswers ? getProfile(answers) : clean(body.profile ?? "");
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    if (eventType === "results_viewed" && !hasCompleteAnswers) {
+      console.warn("Skipping results_viewed tracking for invalid or stale answers.");
+      return NextResponse.json({ ok: true });
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
