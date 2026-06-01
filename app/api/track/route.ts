@@ -21,10 +21,16 @@ export async function POST(request: NextRequest) {
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
     const answers = body.answers ?? {};
-    const profile = areCompleteCurrentQuizAnswers(answers) ? getProfile(answers) : clean(body.profile ?? "");
+    const hasCompleteAnswers = areCompleteCurrentQuizAnswers(answers);
+    const profile = hasCompleteAnswers ? getProfile(answers) : clean(body.profile ?? "");
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    if (eventType === "results_viewed" && !hasCompleteAnswers) {
+      console.warn("Skipping results_viewed tracking for invalid or stale answers.");
+      return NextResponse.json({ ok: true });
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
@@ -40,11 +46,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
-      if (!areCompleteCurrentQuizAnswers(answers)) {
-        console.warn("Skipping quiz completion insert for invalid or stale answers.");
-        return NextResponse.json({ ok: true });
-      }
-
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
