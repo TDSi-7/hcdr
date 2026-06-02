@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { areCompleteCurrentQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     const phone = clean(body.phone).replace(/\s+/g, "");
     const currentProvider = clean(body.currentProvider);
 
-    if (!firstName || !lastName || !email || !phone || !currentProvider || !body.referralConsent) {
+    if (!firstName || !lastName || !email || !phone || !currentProvider || body.referralConsent !== true) {
       return NextResponse.json({ error: "Please complete all required fields." }, { status: 400 });
     }
     if (!emailRegex.test(email)) {
@@ -51,7 +52,11 @@ export async function POST(request: NextRequest) {
     }
 
     const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    if (!areCompleteCurrentQuizAnswers(answers)) {
+      return NextResponse.json({ error: "Please complete the quiz before submitting." }, { status: 400 });
+    }
+
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
@@ -79,8 +84,8 @@ export async function POST(request: NextRequest) {
       q8: answerLabel(8, answers[8]),
       q9: answerLabel(9, answers[9]),
       result_profile: profile || null,
-      guide_consent: Boolean(body.guideConsent),
-      referral_consent: Boolean(body.referralConsent)
+      guide_consent: body.guideConsent === true,
+      referral_consent: true
     };
 
     // Attempt inserts in order from richest to most stripped-down so we still
@@ -96,64 +101,9 @@ export async function POST(request: NextRequest) {
         const v = { ...leadPayload };
         delete v.source;
         delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
         delete v.session_id;
         delete v.result_profile;
         delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
         return v;
       })()
     ];
