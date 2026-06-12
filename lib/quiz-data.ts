@@ -155,3 +155,15 @@ export const quizLabelByQuestionAndValue = quizQuestions.reduce<Record<number, R
   },
   {}
 );
+
+export function isCompleteCurrentQuizAnswers(answers: unknown): answers is Record<number, string> {
+  if (!answers || typeof answers !== "object") {
+    return false;
+  }
+
+  const answerMap = answers as Record<number, unknown>;
+  return quizQuestions.every((question) => {
+    const answer = answerMap[question.id];
+    return typeof answer === "string" && Boolean(quizLabelByQuestionAndValue[question.id]?.[answer]);
+  });
+}
