@@ -30,6 +30,14 @@ function answerLabel(questionId: number, answerValue: string | undefined) {
   return quizLabelByQuestionAndValue[questionId]?.[answerValue] ?? answerValue;
 }
 
+function omitKeys(payload: Record<string, unknown>, keys: string[]) {
+  const next = { ...payload };
+  for (const key of keys) {
+    delete next[key];
+  }
+  return next;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as SubmissionBody;
@@ -60,6 +68,27 @@ export async function POST(request: NextRequest) {
       new Set([process.env.SUPABASE_LEADS_TABLE || "catheter_leads", "catheter_leads"])
     );
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
+    const currentAnswerPayload = {
+      q1: answerLabel(1, answers[1]),
+      q2: answerLabel(2, answers[2]),
+      q3: answerLabel(3, answers[3]),
+      q4: answerLabel(4, answers[4]),
+      q5: answerLabel(5, answers[5]),
+      q6: answerLabel(6, answers[6]),
+      q7: answerLabel(7, answers[7]),
+      q8: answerLabel(8, answers[8]),
+      q9: answerLabel(9, answers[9])
+    };
+    const legacyEightQuestionAnswerPayload = {
+      q1: answerLabel(1, answers[1]),
+      q2: answerLabel(3, answers[3]),
+      q3: answerLabel(4, answers[4]),
+      q4: answerLabel(5, answers[5]),
+      q5: answerLabel(6, answers[6]),
+      q6: answerLabel(7, answers[7]),
+      q7: answerLabel(8, answers[8]),
+      q8: answerLabel(9, answers[9])
+    };
     const leadPayload: Record<string, unknown> = {
       session_id: sessionId || null,
       first_name: firstName,
@@ -69,93 +98,55 @@ export async function POST(request: NextRequest) {
       current_provider: currentProvider,
       catheter_type: catheterType || null,
       source: source || null,
-      q1: answerLabel(1, answers[1]),
-      q2: answerLabel(2, answers[2]),
-      q3: answerLabel(3, answers[3]),
-      q4: answerLabel(4, answers[4]),
-      q5: answerLabel(5, answers[5]),
-      q6: answerLabel(6, answers[6]),
-      q7: answerLabel(7, answers[7]),
-      q8: answerLabel(8, answers[8]),
-      q9: answerLabel(9, answers[9]),
+      ...currentAnswerPayload,
       result_profile: profile || null,
       guide_consent: Boolean(body.guideConsent),
       referral_consent: Boolean(body.referralConsent)
     };
+    const legacyLeadPayload = omitKeys(
+      { ...leadPayload, ...legacyEightQuestionAnswerPayload },
+      ["source", "catheter_type", "q9"]
+    );
 
     // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // succeed if some columns don't yet exist on the Supabase table. If the
+    // table lacks q9, use the old 8-question mapping so q2-q8 keep their
+    // pre-v5 meanings instead of silently shifting every answer.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
-      })()
+      omitKeys(leadPayload, ["source"]),
+      omitKeys(leadPayload, ["catheter_type"]),
+      omitKeys(leadPayload, ["source", "catheter_type"]),
+      legacyLeadPayload,
+      omitKeys(legacyLeadPayload, ["session_id", "result_profile"]),
+      omitKeys(legacyLeadPayload, ["session_id", "result_profile", "current_provider", "guide_consent"]),
+      omitKeys(legacyLeadPayload, [
+        "session_id",
+        "result_profile",
+        "guide_consent",
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "q7",
+        "q8"
+      ]),
+      omitKeys(legacyLeadPayload, [
+        "session_id",
+        "result_profile",
+        "guide_consent",
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "q7",
+        "q8",
+        "current_provider"
+      ])
     ];
 
     let inserted = false;
