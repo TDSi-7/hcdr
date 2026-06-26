@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { isCompleteQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -51,7 +52,11 @@ export async function POST(request: NextRequest) {
     }
 
     const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    if (!isCompleteQuizAnswers(answers)) {
+      return NextResponse.json({ error: "Please complete the quiz again before submitting." }, { status: 400 });
+    }
+
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
       q7: answerLabel(7, answers[7]),
       q8: answerLabel(8, answers[8]),
       q9: answerLabel(9, answers[9]),
-      result_profile: profile || null,
+      result_profile: profile,
       guide_consent: Boolean(body.guideConsent),
       referral_consent: Boolean(body.referralConsent)
     };
@@ -181,7 +186,7 @@ export async function POST(request: NextRequest) {
       const eventBase = {
         session_id: sessionId,
         event_type: "contact_submitted",
-        profile: profile || null
+        profile
       };
       try {
         await insertSupabaseRow(eventsTable, { ...eventBase, source: source || null });
