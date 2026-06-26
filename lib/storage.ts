@@ -1,6 +1,10 @@
+import { isCompleteQuizAnswers } from "./quiz-data";
+
 export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
 export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
+export const QUIZ_SCHEMA_VERSION_KEY = "hcdr_quiz_schema_version";
+export const QUIZ_SCHEMA_VERSION = "5.1";
 
 export function loadAnswers(): Record<number, string> {
   if (typeof window === "undefined") {
@@ -11,7 +15,11 @@ export function loadAnswers(): Record<number, string> {
     return {};
   }
   try {
-    return JSON.parse(raw) as Record<number, string>;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as Record<number, string>;
   } catch {
     return {};
   }
@@ -22,6 +30,19 @@ export function saveAnswers(answers: Record<number, string>): void {
     return;
   }
   window.sessionStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(answers));
+  window.sessionStorage.setItem(QUIZ_SCHEMA_VERSION_KEY, QUIZ_SCHEMA_VERSION);
+}
+
+export function hasCurrentQuizState(answers: Record<number, string>): boolean {
+  if (!isCompleteQuizAnswers(answers)) {
+    return false;
+  }
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  const storedVersion = window.sessionStorage.getItem(QUIZ_SCHEMA_VERSION_KEY);
+  return !storedVersion || storedVersion === QUIZ_SCHEMA_VERSION;
 }
 
 export function saveProfile(profile: "A" | "B" | "C"): void {
@@ -49,6 +70,7 @@ export function clearQuizState(): void {
   window.sessionStorage.removeItem(QUIZ_ANSWERS_KEY);
   window.sessionStorage.removeItem(QUIZ_PROFILE_KEY);
   window.sessionStorage.removeItem(QUIZ_SESSION_KEY);
+  window.sessionStorage.removeItem(QUIZ_SCHEMA_VERSION_KEY);
 }
 
 export function getOrCreateSessionId(): string {
