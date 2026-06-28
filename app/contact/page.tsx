@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
+import { getOrCreateSessionId, loadAnswers } from "@/lib/storage";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
 
@@ -19,17 +21,30 @@ function ContactPageInner() {
   const rawSource = searchParams?.get("source") ?? null;
   const source = rawSource && allowedSources.has(rawSource) ? rawSource : null;
 
+  useEffect(() => {
+    if (!isCompleteQuizAnswers(loadAnswers())) {
+      router.replace("/quiz");
+    }
+  }, [router]);
+
   async function submit(payload: ContactPayload) {
     setSubmitting(true);
     setSubmitError("");
     try {
+      const answers = loadAnswers();
+      if (!isCompleteQuizAnswers(answers)) {
+        setSubmitError("Please complete the quiz before requesting a callback.");
+        router.replace("/quiz");
+        return;
+      }
+
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
-          profile: loadProfile(),
+          answers,
+          profile: getProfile(answers),
           sessionId: getOrCreateSessionId(),
           source
         })
