@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { QuizAnswers, isCompleteQuizAnswers } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -19,10 +20,17 @@ export async function POST(request: NextRequest) {
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
     const profile = clean(body.profile ?? "");
-    const answers = body.answers ?? {};
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    let completionAnswers: QuizAnswers | null = null;
+    if (eventType === "results_viewed") {
+      if (!isCompleteQuizAnswers(body.answers)) {
+        return NextResponse.json({ error: "Incomplete quiz answers" }, { status: 400 });
+      }
+      completionAnswers = body.answers;
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
@@ -37,7 +45,8 @@ export async function POST(request: NextRequest) {
       console.warn("Event insert failed (non-blocking):", eventsError);
     }
 
-    if (eventType === "results_viewed") {
+    if (eventType === "results_viewed" && completionAnswers) {
+      const answers = completionAnswers;
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",

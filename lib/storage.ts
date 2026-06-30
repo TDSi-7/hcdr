@@ -1,8 +1,10 @@
+import { QuizAnswers } from "./quiz-data";
+
 export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
 export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
 
-export function loadAnswers(): Record<number, string> {
+export function loadAnswers(): QuizAnswers {
   if (typeof window === "undefined") {
     return {};
   }
@@ -11,13 +13,13 @@ export function loadAnswers(): Record<number, string> {
     return {};
   }
   try {
-    return JSON.parse(raw) as Record<number, string>;
+    return JSON.parse(raw) as QuizAnswers;
   } catch {
     return {};
   }
 }
 
-export function saveAnswers(answers: Record<number, string>): void {
+export function saveAnswers(answers: QuizAnswers): void {
   if (typeof window === "undefined") {
     return;
   }

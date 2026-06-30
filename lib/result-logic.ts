@@ -1,4 +1,6 @@
-export function getProfile(answers: Record<number, string>): "A" | "B" | "C" {
+import { QuizAnswers } from "./quiz-data";
+
+export function getProfile(answers: QuizAnswers): "A" | "B" | "C" {
   const satisfaction = parseInt(answers[9] ?? "0", 10);
   const choiceAwareness = answers[5];
 

@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { QuizAnswers, isCompleteQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
-import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
+import { clearQuizState, getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
 import { trackQuizEvent } from "@/lib/tracking";
 
 const guideUrl = "https://healthcaredeliveryreviews.co.uk/the-ultimate-guide-to-intermittent-self-catheterisation/";
@@ -54,14 +54,15 @@ function TrustPromiseRow() {
 }
 
 export default function ResultsPage() {
-  const [answers, setAnswers] = useState<Record<number, string> | null>(null);
+  const [answers, setAnswers] = useState<QuizAnswers | null>(null);
   const router = useRouter();
   const hasTrackedView = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    if (!isCompleteQuizAnswers(storedAnswers)) {
+      clearQuizState();
       router.replace("/quiz");
       return;
     }
