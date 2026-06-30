@@ -18,6 +18,8 @@ export type QuizQuestion = {
   imageFit?: "cover" | "contain";
 };
 
+export type QuizAnswers = Record<number, string>;
+
 export const quizQuestions: QuizQuestion[] = [
   {
     id: 1,
@@ -155,3 +157,15 @@ export const quizLabelByQuestionAndValue = quizQuestions.reduce<Record<number, R
   },
   {}
 );
+
+export function isCompleteQuizAnswers(value: unknown): value is QuizAnswers {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const answers = value as Record<number, unknown>;
+  return quizQuestions.every((question) => {
+    const answer = answers[question.id];
+    return typeof answer === "string" && question.options.some((option) => option.value === answer);
+  });
+}
