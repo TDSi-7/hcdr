@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -25,12 +27,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
     }
 
+    let trackedProfile = profile || null;
+    let completeAnswers: Record<number, string> | null = null;
+    if (eventType === "results_viewed") {
+      if (!isCompleteQuizAnswers(answers)) {
+        return NextResponse.json({ error: "Incomplete quiz answers" }, { status: 400 });
+      }
+
+      completeAnswers = answers;
+      trackedProfile = getProfile(answers);
+    }
+
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
     try {
       await insertSupabaseRow(eventsTable, {
         session_id: sessionId,
         event_type: eventType,
-        profile: profile || null
+        profile: trackedProfile
       });
     } catch (eventsError) {
       // Events table is optional for now; do not block quiz completion capture.
@@ -38,6 +51,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      if (!completeAnswers) {
+        return NextResponse.json({ error: "Incomplete quiz answers" }, { status: 400 });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -48,15 +65,15 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
-        q1: answers[1] ?? null,
-        q2: answers[2] ?? null,
-        q3: answers[3] ?? null,
-        q4: answers[4] ?? null,
-        q5: answers[5] ?? null,
-        q6: answers[6] ?? null,
-        q7: answers[7] ?? null,
-        q8: answers[8] ?? null,
-        q9: answers[9] ?? null
+        q1: completeAnswers[1],
+        q2: completeAnswers[2],
+        q3: completeAnswers[3],
+        q4: completeAnswers[4],
+        q5: completeAnswers[5],
+        q6: completeAnswers[6],
+        q7: completeAnswers[7],
+        q8: completeAnswers[8],
+        q9: completeAnswers[9]
       };
       const variant1 = baseQuizPayload;
       const variant2 = { ...baseQuizPayload };
