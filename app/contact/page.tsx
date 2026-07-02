@@ -7,7 +7,9 @@ import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
+import { clearQuizState, getOrCreateSessionId, loadAnswers } from "@/lib/storage";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
 
@@ -23,13 +25,21 @@ function ContactPageInner() {
     setSubmitting(true);
     setSubmitError("");
     try {
+      const answers = loadAnswers();
+      if (!isCompleteQuizAnswers(answers)) {
+        clearQuizState();
+        setSubmitError("Please complete the quiz before requesting a callback.");
+        router.replace("/quiz");
+        return;
+      }
+      const profile = getProfile(answers);
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
-          profile: loadProfile(),
+          answers,
+          profile,
           sessionId: getOrCreateSessionId(),
           source
         })
