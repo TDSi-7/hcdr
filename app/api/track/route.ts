@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
   sessionId?: string;
   eventType?: string;
   profile?: "A" | "B" | "C" | null;
-  answers?: Record<number, string>;
+  answers?: unknown;
 };
 
 function clean(value: unknown): string {
@@ -19,10 +20,15 @@ export async function POST(request: NextRequest) {
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
     const profile = clean(body.profile ?? "");
-    const answers = body.answers ?? {};
+    const answers = body.answers;
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    if (eventType === "results_viewed" && !isCompleteQuizAnswers(answers)) {
+      console.warn("Skipping results_viewed tracking for incomplete or invalid answers.");
+      return NextResponse.json({ ok: true });
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
