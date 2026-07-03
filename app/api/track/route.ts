@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      const currentAnswers = answers as Record<number, string>;
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -54,15 +55,15 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
-        q1: answers[1] ?? null,
-        q2: answers[2] ?? null,
-        q3: answers[3] ?? null,
-        q4: answers[4] ?? null,
-        q5: answers[5] ?? null,
-        q6: answers[6] ?? null,
-        q7: answers[7] ?? null,
-        q8: answers[8] ?? null,
-        q9: answers[9] ?? null
+        q1: currentAnswers[1] ?? null,
+        q2: currentAnswers[2] ?? null,
+        q3: currentAnswers[3] ?? null,
+        q4: currentAnswers[4] ?? null,
+        q5: currentAnswers[5] ?? null,
+        q6: currentAnswers[6] ?? null,
+        q7: currentAnswers[7] ?? null,
+        q8: currentAnswers[8] ?? null,
+        q9: currentAnswers[9] ?? null
       };
       const variant1 = baseQuizPayload;
       const variant2 = { ...baseQuizPayload };
