@@ -1,35 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
+import { clearQuizState, getOrCreateSessionId, loadAnswers } from "@/lib/storage";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
 
 function ContactPageInner() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [hasValidAnswers, setHasValidAnswers] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawSource = searchParams?.get("source") ?? null;
   const source = rawSource && allowedSources.has(rawSource) ? rawSource : null;
 
+  useEffect(() => {
+    const answers = loadAnswers();
+    if (!isCompleteQuizAnswers(answers)) {
+      clearQuizState();
+      router.replace("/quiz");
+      return;
+    }
+
+    setHasValidAnswers(true);
+  }, [router]);
+
   async function submit(payload: ContactPayload) {
     setSubmitting(true);
     setSubmitError("");
     try {
+      const answers = loadAnswers();
+      if (!isCompleteQuizAnswers(answers)) {
+        clearQuizState();
+        router.replace("/quiz");
+        return;
+      }
+
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
-          profile: loadProfile(),
+          answers,
+          profile: getProfile(answers),
           sessionId: getOrCreateSessionId(),
           source
         })
@@ -79,7 +100,9 @@ function ContactPageInner() {
               This service is free — your catheter supplies remain funded by the NHS.
             </p>
             <div className="mt-5">
-              <ConsentForm onSubmit={submit} submitting={submitting} submitError={submitError} />
+              {hasValidAnswers ? (
+                <ConsentForm onSubmit={submit} submitting={submitting} submitError={submitError} />
+              ) : null}
             </div>
             <p className="mt-4 text-sm text-hcdr-body">
               <Link

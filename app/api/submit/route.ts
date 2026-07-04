@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { isCompleteQuizAnswers, quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
@@ -8,8 +9,8 @@ type SubmissionBody = {
   email: string;
   phone: string;
   currentProvider?: string;
-  answers: Record<number, string>;
-  profile: "A" | "B" | "C" | null;
+  answers?: unknown;
+  profile?: "A" | "B" | "C" | null;
   guideConsent: boolean;
   referralConsent: boolean;
   sessionId?: string;
@@ -50,8 +51,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid UK phone number format." }, { status: 400 });
     }
 
-    const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    const answers = body.answers;
+    if (!isCompleteQuizAnswers(answers)) {
+      return NextResponse.json(
+        { error: "Please retake the quiz before submitting your details." },
+        { status: 400 }
+      );
+    }
+
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
@@ -83,8 +91,8 @@ export async function POST(request: NextRequest) {
       referral_consent: Boolean(body.referralConsent)
     };
 
-    // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // Only strip optional metadata columns. Quiz answers/profile must be saved
+    // atomically with the lead to avoid silent data loss or shifted columns.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
       (() => {
@@ -96,64 +104,6 @@ export async function POST(request: NextRequest) {
         const v = { ...leadPayload };
         delete v.source;
         delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
         return v;
       })()
     ];
