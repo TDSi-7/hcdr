@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    if (eventType === "results_viewed" && !isCompleteQuizAnswers(answers)) {
+      return NextResponse.json({ error: "Incomplete quiz answers" }, { status: 400 });
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
