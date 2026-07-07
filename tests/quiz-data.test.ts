@@ -3,10 +3,12 @@ import test from "node:test";
 import { isCompleteQuizAnswers, quizQuestions } from "../lib/quiz-data";
 
 function completeAnswers(overrides: Record<number, string> = {}) {
-  return quizQuestions.reduce<Record<number, string>>((answers, question) => {
-    answers[question.id] = question.options[0].value;
-    return answers;
-  }, { ...overrides });
+  const answers = quizQuestions.reduce<Record<number, string>>((nextAnswers, question) => {
+    nextAnswers[question.id] = question.options[0].value;
+    return nextAnswers;
+  }, {});
+
+  return { ...answers, ...overrides };
 }
 
 test("accepts a complete set of current quiz answers", () => {
