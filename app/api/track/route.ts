@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
   sessionId?: string;
   eventType?: string;
   profile?: "A" | "B" | "C" | null;
-  answers?: Record<number, string>;
+  answers?: unknown;
 };
+
+const allowedEventTypes = new Set([
+  "results_viewed",
+  "connect_clicked",
+  "guide_clicked",
+  "start_over_clicked",
+  "contact_submitted"
+]);
 
 function clean(value: unknown): string {
   if (typeof value !== "string") return "";
@@ -18,12 +28,22 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as TrackBody;
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
-    const profile = clean(body.profile ?? "");
     const answers = body.answers ?? {};
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
     }
+    if (!allowedEventTypes.has(eventType)) {
+      return NextResponse.json({ error: "Invalid eventType" }, { status: 400 });
+    }
+
+    if (eventType === "results_viewed" && !isCompleteQuizAnswers(answers)) {
+      console.warn("Skipping results_viewed tracking for incomplete or invalid answers.");
+      return NextResponse.json({ ok: true });
+    }
+
+    const quizAnswers = eventType === "results_viewed" && isCompleteQuizAnswers(answers) ? answers : null;
+    const profile = quizAnswers ? getProfile(quizAnswers) : clean(body.profile ?? "");
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
     try {
@@ -37,7 +57,7 @@ export async function POST(request: NextRequest) {
       console.warn("Event insert failed (non-blocking):", eventsError);
     }
 
-    if (eventType === "results_viewed") {
+    if (quizAnswers) {
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -48,31 +68,22 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
-        q1: answers[1] ?? null,
-        q2: answers[2] ?? null,
-        q3: answers[3] ?? null,
-        q4: answers[4] ?? null,
-        q5: answers[5] ?? null,
-        q6: answers[6] ?? null,
-        q7: answers[7] ?? null,
-        q8: answers[8] ?? null,
-        q9: answers[9] ?? null
+        q1: quizAnswers[1] ?? null,
+        q2: quizAnswers[2] ?? null,
+        q3: quizAnswers[3] ?? null,
+        q4: quizAnswers[4] ?? null,
+        q5: quizAnswers[5] ?? null,
+        q6: quizAnswers[6] ?? null,
+        q7: quizAnswers[7] ?? null,
+        q8: quizAnswers[8] ?? null,
+        q9: quizAnswers[9] ?? null
       };
       const variant1 = baseQuizPayload;
       const variant2 = { ...baseQuizPayload };
-      delete variant2.q9;
+      delete variant2.event_type;
       const variant3 = { ...variant2 };
-      delete variant3.event_type;
-      const variant4 = { ...variant3 };
-      delete variant4.session_id;
-      const variant5 = {
-        session_id: sessionId,
-        event_type: eventType
-      };
-      const variant6 = {
-        event_type: eventType
-      };
-      const variants = [variant1, variant2, variant3, variant4, variant5, variant6];
+      delete variant3.session_id;
+      const variants = [variant1, variant2, variant3];
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {
