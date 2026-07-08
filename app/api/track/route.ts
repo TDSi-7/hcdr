@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCompleteQuizAnswers } from "@/lib/quiz-data";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -38,6 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      if (!isCompleteQuizAnswers(answers)) {
+        console.warn("Skipping quiz completion insert for incomplete or stale answers.");
+        return NextResponse.json({ ok: true });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
