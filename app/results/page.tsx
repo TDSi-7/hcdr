@@ -9,6 +9,7 @@ import { SmartImage } from "@/components/SmartImage";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
+import { isCompleteQuizAnswers } from "@/lib/quiz-validation";
 import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
 import { trackQuizEvent } from "@/lib/tracking";
 
@@ -61,7 +62,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    if (!isCompleteQuizAnswers(storedAnswers)) {
       router.replace("/quiz");
       return;
     }

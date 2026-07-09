@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { getProfile } from "@/lib/result-logic";
+import { normalizeQuizAnswers } from "@/lib/quiz-validation";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type SubmissionBody = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
   currentProvider?: string;
-  answers: Record<number, string>;
-  profile: "A" | "B" | "C" | null;
-  guideConsent: boolean;
-  referralConsent: boolean;
+  answers?: unknown;
+  profile?: "A" | "B" | "C" | null;
+  guideConsent?: boolean;
+  referralConsent?: boolean;
   sessionId?: string;
   source?: string | null;
 };
@@ -30,17 +32,30 @@ function answerLabel(questionId: number, answerValue: string | undefined) {
   return quizLabelByQuestionAndValue[questionId]?.[answerValue] ?? answerValue;
 }
 
+function omitKeys(source: Record<string, unknown>, keys: string[]) {
+  const copy = { ...source };
+  for (const key of keys) {
+    delete copy[key];
+  }
+  return copy;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as SubmissionBody;
+    const body = (await request.json()) as SubmissionBody | null;
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid submission payload." }, { status: 400 });
+    }
 
     const firstName = clean(body.firstName);
     const lastName = clean(body.lastName);
     const email = clean(body.email);
     const phone = clean(body.phone).replace(/\s+/g, "");
     const currentProvider = clean(body.currentProvider);
+    const guideConsent = body.guideConsent === true;
+    const referralConsent = body.referralConsent === true;
 
-    if (!firstName || !lastName || !email || !phone || !currentProvider || !body.referralConsent) {
+    if (!firstName || !lastName || !email || !phone || !currentProvider || !referralConsent) {
       return NextResponse.json({ error: "Please complete all required fields." }, { status: 400 });
     }
     if (!emailRegex.test(email)) {
@@ -50,8 +65,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid UK phone number format." }, { status: 400 });
     }
 
-    const answers = body.answers ?? {};
-    const profile = body.profile ?? "";
+    const answers = normalizeQuizAnswers(body.answers);
+    if (!answers) {
+      return NextResponse.json({ error: "Please complete the quiz before requesting a callback." }, { status: 400 });
+    }
+
+    const profile = getProfile(answers);
     const sessionId = clean(body.sessionId);
     const rawSource = clean(body.source ?? "");
     const source = allowedSources.has(rawSource) ? rawSource : "";
@@ -79,83 +98,17 @@ export async function POST(request: NextRequest) {
       q8: answerLabel(8, answers[8]),
       q9: answerLabel(9, answers[9]),
       result_profile: profile || null,
-      guide_consent: Boolean(body.guideConsent),
-      referral_consent: Boolean(body.referralConsent)
+      guide_consent: guideConsent,
+      referral_consent: referralConsent
     };
 
-    // Attempt inserts in order from richest to most stripped-down so we still
-    // succeed if some columns don't yet exist on the Supabase table.
+    // Only optional schema-drift fields may be dropped. A successful lead
+    // insert must retain quiz answers, profile, provider, and consent values.
     const payloadVariants: Array<Record<string, unknown>> = [
       leadPayload,
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.q9;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.current_provider;
-        delete v.guide_consent;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        return v;
-      })(),
-      (() => {
-        const v = { ...leadPayload };
-        delete v.source;
-        delete v.catheter_type;
-        delete v.session_id;
-        delete v.result_profile;
-        delete v.guide_consent;
-        delete v.q1;
-        delete v.q2;
-        delete v.q3;
-        delete v.q4;
-        delete v.q5;
-        delete v.q6;
-        delete v.q7;
-        delete v.q8;
-        delete v.q9;
-        delete v.current_provider;
-        return v;
-      })()
+      omitKeys(leadPayload, ["source"]),
+      omitKeys(leadPayload, ["source", "catheter_type"]),
+      omitKeys(leadPayload, ["source", "catheter_type", "session_id"])
     ];
 
     let inserted = false;

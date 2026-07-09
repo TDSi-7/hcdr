@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -8,7 +8,8 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { QuizQuestion } from "@/components/QuizQuestion";
 import { quizQuestions } from "@/lib/quiz-data";
 import { getProfile } from "@/lib/result-logic";
-import { saveAnswers, saveProfile } from "@/lib/storage";
+import { isCompleteQuizAnswers } from "@/lib/quiz-validation";
+import { clearQuizState, saveAnswers, saveProfile } from "@/lib/storage";
 
 export default function QuizPage() {
   const [step, setStep] = useState(1);
@@ -18,6 +19,10 @@ export default function QuizPage() {
 
   const question = useMemo(() => quizQuestions[step - 1], [step]);
   const selectedAnswer = answers[question.id];
+
+  useEffect(() => {
+    clearQuizState();
+  }, []);
 
   function handleSelect(value: string) {
     setAnswers((prev) => ({ ...prev, [question.id]: value }));
@@ -30,6 +35,7 @@ export default function QuizPage() {
       setStep((prev) => prev + 1);
       return;
     }
+    if (!isCompleteQuizAnswers(answers)) return;
     const profile = getProfile(answers);
     saveAnswers(answers);
     saveProfile(profile);
