@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
+import { normalizeQuizAnswers } from "@/lib/quiz-validation";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
 import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
@@ -60,8 +61,8 @@ export default function ResultsPage() {
   const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    const storedAnswers = normalizeQuizAnswers(loadAnswers());
+    if (!storedAnswers) {
       router.replace("/quiz");
       return;
     }
