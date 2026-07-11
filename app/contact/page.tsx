@@ -7,7 +7,9 @@ import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
+import { getProfile } from "@/lib/result-logic";
+import { getOrCreateSessionId, loadAnswers } from "@/lib/storage";
+import { normalizeQuizAnswers } from "@/lib/quiz-validation";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
 
@@ -20,6 +22,13 @@ function ContactPageInner() {
   const source = rawSource && allowedSources.has(rawSource) ? rawSource : null;
 
   async function submit(payload: ContactPayload) {
+    const answers = normalizeQuizAnswers(loadAnswers());
+    if (!answers) {
+      setSubmitError("Please complete the quiz before requesting a callback.");
+      router.replace("/quiz");
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -28,8 +37,8 @@ function ContactPageInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
-          profile: loadProfile(),
+          answers,
+          profile: getProfile(answers),
           sessionId: getOrCreateSessionId(),
           source
         })

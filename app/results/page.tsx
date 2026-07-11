@@ -9,6 +9,7 @@ import { SmartImage } from "@/components/SmartImage";
 import { quizLabelByQuestionAndValue } from "@/lib/quiz-data";
 import { getResultCards, getSupplyNudge } from "@/lib/result-content";
 import { getProfile } from "@/lib/result-logic";
+import { normalizeQuizAnswers } from "@/lib/quiz-validation";
 import { getOrCreateSessionId, loadAnswers, saveProfile } from "@/lib/storage";
 import { trackQuizEvent } from "@/lib/tracking";
 
@@ -61,11 +62,12 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const storedAnswers = loadAnswers();
-    if (!storedAnswers[1]) {
+    const normalizedAnswers = normalizeQuizAnswers(storedAnswers);
+    if (!normalizedAnswers) {
       router.replace("/quiz");
       return;
     }
-    setAnswers(storedAnswers);
+    setAnswers(normalizedAnswers);
   }, [router]);
 
   const profile = useMemo<ProfileKey | null>(() => {
