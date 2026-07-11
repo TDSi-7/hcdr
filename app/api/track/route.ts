@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeQuizAnswers } from "@/lib/quiz-validation";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -38,6 +39,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (eventType === "results_viewed") {
+      const normalizedAnswers = normalizeQuizAnswers(answers);
+      if (!normalizedAnswers) {
+        console.warn("Skipping quiz completion insert for incomplete answers");
+        return NextResponse.json({ ok: true });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -48,15 +55,15 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
-        q1: answers[1] ?? null,
-        q2: answers[2] ?? null,
-        q3: answers[3] ?? null,
-        q4: answers[4] ?? null,
-        q5: answers[5] ?? null,
-        q6: answers[6] ?? null,
-        q7: answers[7] ?? null,
-        q8: answers[8] ?? null,
-        q9: answers[9] ?? null
+        q1: normalizedAnswers[1],
+        q2: normalizedAnswers[2],
+        q3: normalizedAnswers[3],
+        q4: normalizedAnswers[4],
+        q5: normalizedAnswers[5],
+        q6: normalizedAnswers[6],
+        q7: normalizedAnswers[7],
+        q8: normalizedAnswers[8],
+        q9: normalizedAnswers[9]
       };
       const variant1 = baseQuizPayload;
       const variant2 = { ...baseQuizPayload };
