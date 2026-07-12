@@ -1,35 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConsentForm, ContactPayload } from "@/components/ConsentForm";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SmartImage } from "@/components/SmartImage";
-import { getOrCreateSessionId, loadAnswers, loadProfile } from "@/lib/storage";
+import { isQuizComplete } from "@/lib/quiz-validation";
+import { getProfile } from "@/lib/result-logic";
+import { clearQuizState, getOrCreateSessionId, loadAnswers } from "@/lib/storage";
 
 const allowedSources = new Set(["results_top", "results_bottom"]);
 
 function ContactPageInner() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [quizReady, setQuizReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawSource = searchParams?.get("source") ?? null;
   const source = rawSource && allowedSources.has(rawSource) ? rawSource : null;
 
+  useEffect(() => {
+    const answers = loadAnswers();
+    if (!isQuizComplete(answers)) {
+      clearQuizState();
+      router.replace("/quiz");
+      return;
+    }
+    setQuizReady(true);
+  }, [router]);
+
   async function submit(payload: ContactPayload) {
+    const answers = loadAnswers();
+    if (!isQuizComplete(answers)) {
+      clearQuizState();
+      router.replace("/quiz");
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError("");
     try {
+      const profile = getProfile(answers);
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          answers: loadAnswers(),
-          profile: loadProfile(),
+          answers,
+          profile,
           sessionId: getOrCreateSessionId(),
           source
         })
@@ -59,6 +80,8 @@ function ContactPageInner() {
       setSubmitting(false);
     }
   }
+
+  if (!quizReady) return null;
 
   return (
     <main className="bg-hcdr-warm">
