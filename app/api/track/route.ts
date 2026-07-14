@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeQuizAnswers } from "@/lib/quiz-validation";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
@@ -19,11 +20,20 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as TrackBody;
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
-    const profile = clean(body.profile ?? "");
+    let profile = clean(body.profile ?? "");
     const answers = body.answers ?? {};
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    const validatedAnswers = eventType === "results_viewed" ? normalizeQuizAnswers(answers) : null;
+    if (eventType === "results_viewed") {
+      if (!validatedAnswers) {
+        console.warn("Skipping results event for incomplete or invalid answers.");
+        return NextResponse.json({ ok: true });
+      }
+      profile = getProfile(validatedAnswers);
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
@@ -38,13 +48,7 @@ export async function POST(request: NextRequest) {
       console.warn("Event insert failed (non-blocking):", eventsError);
     }
 
-    if (eventType === "results_viewed") {
-      const validatedAnswers = normalizeQuizAnswers(answers);
-      if (!validatedAnswers) {
-        console.warn("Skipping quiz completion insert for incomplete or invalid answers.");
-        return NextResponse.json({ ok: true });
-      }
-
+    if (validatedAnswers) {
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
+        result_profile: profile,
         q1: validatedAnswers[1],
         q2: validatedAnswers[2],
         q3: validatedAnswers[3],
