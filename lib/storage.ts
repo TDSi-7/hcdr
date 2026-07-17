@@ -1,3 +1,5 @@
+import { hasCompleteQuizAnswers } from "@/lib/quiz-validation";
+
 export const QUIZ_ANSWERS_KEY = "hcdr_quiz_answers";
 export const QUIZ_PROFILE_KEY = "hcdr_quiz_profile";
 export const QUIZ_SESSION_KEY = "hcdr_quiz_session_id";
@@ -11,10 +13,16 @@ export function loadAnswers(): Record<number, string> {
     return {};
   }
   try {
-    return JSON.parse(raw) as Record<number, string>;
+    const answers: unknown = JSON.parse(raw);
+    if (hasCompleteQuizAnswers(answers)) {
+      return answers;
+    }
   } catch {
-    return {};
+    // Invalid persisted state is cleared below.
   }
+  window.sessionStorage.removeItem(QUIZ_ANSWERS_KEY);
+  window.sessionStorage.removeItem(QUIZ_PROFILE_KEY);
+  return {};
 }
 
 export function saveAnswers(answers: Record<number, string>): void {
