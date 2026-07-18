@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
       console.warn("Event insert failed (non-blocking):", eventsError);
     }
 
-    if (eventType === "results_viewed" && !isCompleteQuizAnswers(answers)) {
-      console.warn("Quiz completion capture skipped: incomplete or invalid current-schema answers");
-      return NextResponse.json({ ok: true });
-    }
-
     if (eventType === "results_viewed") {
+      if (!isCompleteQuizAnswers(answers)) {
+        console.warn("Quiz completion capture skipped: incomplete or invalid current-schema answers");
+        return NextResponse.json({ ok: true });
+      }
+
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
