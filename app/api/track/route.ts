@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getQuizPayloadVariants } from "@/lib/quiz-persistence";
+import { normalizeQuizAnswers } from "@/lib/quiz-validation";
+import { getProfile } from "@/lib/result-logic";
 import { insertSupabaseRow } from "@/lib/supabase-admin";
 
 type TrackBody = {
   sessionId?: string;
   eventType?: string;
   profile?: "A" | "B" | "C" | null;
-  answers?: Record<number, string>;
+  answers?: unknown;
 };
 
 function clean(value: unknown): string {
@@ -18,11 +21,19 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as TrackBody;
     const sessionId = clean(body.sessionId);
     const eventType = clean(body.eventType);
-    const profile = clean(body.profile ?? "");
-    const answers = body.answers ?? {};
+    let profile = clean(body.profile ?? "");
 
     if (!sessionId || !eventType) {
       return NextResponse.json({ error: "Missing sessionId or eventType" }, { status: 400 });
+    }
+
+    const validatedAnswers = eventType === "results_viewed" ? normalizeQuizAnswers(body.answers) : null;
+    if (eventType === "results_viewed") {
+      if (!validatedAnswers) {
+        console.warn("Quiz completion capture skipped: incomplete or invalid current-schema answers");
+        return NextResponse.json({ ok: true });
+      }
+      profile = getProfile(validatedAnswers);
     }
 
     const eventsTable = process.env.SUPABASE_EVENTS_TABLE || "quiz_events";
@@ -37,7 +48,7 @@ export async function POST(request: NextRequest) {
       console.warn("Event insert failed (non-blocking):", eventsError);
     }
 
-    if (eventType === "results_viewed") {
+    if (validatedAnswers) {
       const quizTables = Array.from(
         new Set([
           process.env.SUPABASE_QUIZ_TABLE || "quiz_responses",
@@ -48,31 +59,18 @@ export async function POST(request: NextRequest) {
       const baseQuizPayload: Record<string, unknown> = {
         session_id: sessionId,
         event_type: eventType,
-        q1: answers[1] ?? null,
-        q2: answers[2] ?? null,
-        q3: answers[3] ?? null,
-        q4: answers[4] ?? null,
-        q5: answers[5] ?? null,
-        q6: answers[6] ?? null,
-        q7: answers[7] ?? null,
-        q8: answers[8] ?? null,
-        q9: answers[9] ?? null
+        q1: validatedAnswers[1],
+        q2: validatedAnswers[2],
+        q3: validatedAnswers[3],
+        q4: validatedAnswers[4],
+        q5: validatedAnswers[5],
+        q6: validatedAnswers[6],
+        q7: validatedAnswers[7],
+        q8: validatedAnswers[8],
+        q9: validatedAnswers[9]
       };
-      const variant1 = baseQuizPayload;
-      const variant2 = { ...baseQuizPayload };
-      delete variant2.q9;
-      const variant3 = { ...variant2 };
-      delete variant3.event_type;
-      const variant4 = { ...variant3 };
-      delete variant4.session_id;
-      const variant5 = {
-        session_id: sessionId,
-        event_type: eventType
-      };
-      const variant6 = {
-        event_type: eventType
-      };
-      const variants = [variant1, variant2, variant3, variant4, variant5, variant6];
+      // Schema fallbacks may omit metadata, but never the answers this row exists to capture.
+      const variants = getQuizPayloadVariants(baseQuizPayload);
       let saved = false;
       const errors: string[] = [];
       for (const table of quizTables) {
