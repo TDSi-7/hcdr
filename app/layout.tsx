@@ -20,7 +20,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Cookiebot must load before GTM so auto-blocking can gate marketing tags. */}
         <script
+          id="Cookiebot"
+          src="https://consent.cookiebot.com/uc.js"
+          data-cbid="13fb076c-8dcf-491d-b24a-4fd10daaab4f"
+          data-blockingmode="auto"
+          type="text/javascript"
+        />
+        <script
+          type="text/plain"
+          data-cookieconsent="marketing"
           dangerouslySetInnerHTML={{
             __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -29,24 +39,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-MHCZWSH');`
           }}
         />
-        <script
-          id="Cookiebot"
-          src="https://consent.cookiebot.com/uc.js"
-          data-cbid="13fb076c-8dcf-491d-b24a-4fd10daaab4f"
-          data-blockingmode="auto"
-          type="text/javascript"
-          async
-        />
       </head>
       <body className={`${poppins.className} min-h-screen bg-white text-hcdr-body`}>
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-MHCZWSH"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
         {children}
         <script
           id="CookieDeclaration"
