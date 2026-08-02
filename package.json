@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "googleapis": "^150.0.1",
@@ -23,6 +24,7 @@
     "eslint-config-next": "^14.2.28",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.1",
     "typescript": "^5.8.3"
   }
 }
