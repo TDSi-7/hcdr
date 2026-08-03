@@ -30,8 +30,10 @@ export default function QuizPage() {
       setStep((prev) => prev + 1);
       return;
     }
-    const profile = getProfile(answers);
-    saveAnswers(answers);
+    // Ensure the final selection is included even if state hasn't flushed yet.
+    const completedAnswers = { ...answers, [question.id]: selectedAnswer };
+    const profile = getProfile(completedAnswers);
+    saveAnswers(completedAnswers);
     saveProfile(profile);
     router.push("/results");
   }
