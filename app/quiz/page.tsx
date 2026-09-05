@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -13,6 +13,7 @@ import { saveAnswers, saveProfile } from "@/lib/storage";
 export default function QuizPage() {
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const answersRef = useRef(answers);
   const [direction, setDirection] = useState<"next" | "back">("next");
   const router = useRouter();
 
@@ -20,18 +21,24 @@ export default function QuizPage() {
   const selectedAnswer = answers[question.id];
 
   function handleSelect(value: string) {
-    setAnswers((prev) => ({ ...prev, [question.id]: value }));
+    setAnswers((prev) => {
+      const next = { ...prev, [question.id]: value };
+      answersRef.current = next;
+      return next;
+    });
   }
 
   function handleNext() {
-    if (!selectedAnswer) return;
+    // Read the ref so a last-click selection is kept even if React hasn't re-rendered.
+    const completedAnswers = answersRef.current;
+    if (!completedAnswers[question.id]) return;
     if (step < quizQuestions.length) {
       setDirection("next");
       setStep((prev) => prev + 1);
       return;
     }
-    const profile = getProfile(answers);
-    saveAnswers(answers);
+    const profile = getProfile(completedAnswers);
+    saveAnswers(completedAnswers);
     saveProfile(profile);
     router.push("/results");
   }
